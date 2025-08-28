@@ -16,6 +16,8 @@ A Node.js/Express REST & WebSocket backend server for authentication, user manag
 * Socket.IO
 * bcryptjs
 * dotenv
+* Helmet
+* CORS
 
 ### Prerequisites
 
@@ -46,47 +48,42 @@ PORT=4000
 ### Running the Backend
 
 ```bash
-# Development
+# Development (with nodemon)
 npm run dev
 
 # Production
 npm start
 ```
 
-Default runs at [http://localhost:4000](http://localhost:4000)
+The backend will run at [http://localhost:4000](http://localhost:4000)
 
 ### Directory Structure (Backend)
 
 ```
-apps/api/
-├── src/
-│   ├── api/
-│   │   ├── controllers/
-│   │   │   ├── auth.controller.js
-│   │   │   ├── user.controller.js
-│   │   │   └── workout.controller.js
-│   │   ├── middlewares/
-│   │   │   └── auth.middleware.js
-│   │   └── routes/
-│   │       ├── auth.routes.js
-│   │       ├── user.routes.js
-│   │       └── workout.routes.js
-│   ├── config/
-│   │   └── database.js
-│   ├── models/
-│   │   ├── User.model.js
-│   │   └── Workout.model.js
-│   ├── websocket/
-│   │   ├── index.js
-│   │   └── rules/        ← to be implemented
-│   └── services/
-├── app.js
-├── index.js
-├── .env
-└── package.json
+apps/api
+├─ src
+│  ├─ api
+│  │  ├─ routes
+│  │  │  ├─ auth.routes.js
+│  │  │  └─ user.routes.js
+│  │  └─ controllers
+│  │     ├─ auth.controller.js
+│  │     └─ user.controller.js
+│  ├─ config
+│  │  └─ database.js
+│  ├─ middlewares
+│  │  └─ auth.middleware.js
+│  ├─ models
+│  │  ├─ User.model.js
+│  │  └─ Workout.model.js
+│  ├─ websocket
+│  │  └─ index.js
+│  ├─ app.js
+│  └─ index.js
+└─ package.json
 ```
 
-**License Backend:** MIT © 2025
+**License Backend:** ISC © 2025
 
 ---
 
@@ -145,29 +142,28 @@ npm start
 ### Directory Structure (Frontend)
 
 ```
-apps/web/
-├── app/
-│   ├── dashboard/
-│   │   └── page.jsx
-│   ├── login/
-│   │   └── page.jsx
-│   ├── profile/
-│   │   └── page.jsx
-│   ├── register/
-│   │   └── page.jsx
-│   ├── globals.css
-│   ├── layout.jsx
-│   └── page.jsx
-├── components/
-│   ├── ui/
-│   │   ├── Button.jsx
-│   │   ├── Card.jsx
-│   │   └── Input.jsx
-├── hooks/
-│   └── useAuth.js
-├── lib/
-│   └── apiClient.js
-└── package.json
+apps/web
+├─ app
+│  ├─ layout.jsx
+│  ├─ page.jsx
+│  ├─ login/page.jsx
+│  ├─ register/page.jsx
+│  ├─ dashboard/page.jsx
+│  └─ profile/page.jsx
+├─ components
+│  ├─ ui
+│  │  ├─ Button.jsx
+│  │  ├─ Input.jsx
+│  │  └─ Card.jsx
+│  └─ dashboard
+│     └─ StatCard.jsx
+├─ hooks
+│  └─ useAuth.js
+├─ lib
+│  └─ apiClient.js
+├─ styles
+│  └─ globals.css
+└─ package.json
 ```
 
 **License Frontend:** MIT © 2025
