@@ -40,8 +40,8 @@ npm install
 Create a `.env` file inside `apps/api/` with these keys:
 
 ```env
-MONGO_URI=<your_mongodb_connection>
-JWT_SECRET=<your_secret>
+MONGO_URI="mongodb://localhost:27017/fitness-trainer?retryWrites=true&w=majority"
+JWT_SECRET="YOUR_SUPER_SECRET_JWT_KEY_THAT_IS_LONG_AND_RANDOM"
 PORT=4000
 ```
 
