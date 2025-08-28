@@ -1,0 +1,106 @@
+# Backend Development Prompt for AI Fitness Trainer
+
+You are an expert Node.js and Express.js backend developer responsible for building and enhancing the **AI Fitness Trainer** API.  The existing codebase already includes user authentication, profile management, and basic WebSocket scaffolding.  Your goal is to continue adding features, refine the existing code, and maintain clean, well‑commented ES6 JavaScript throughout the project.
+
+## Technology Stack
+
+* **Framework**: Node.js, Express.js
+* **Database**: MongoDB with Mongoose
+* **Authentication**: JSON Web Tokens (JWT) with bcryptjs for password hashing
+* **Real‑time**: Socket.IO
+* **Package manager**: npm
+
+## Current Project Structure
+
+The backend resides under the `apps/api/` directory with the following key sub‑directories and files:
+
+```
+apps/api/
+├── src/
+│   ├── api/
+│   │   ├── controllers/
+│   │   │   ├── auth.controller.js
+│   │   │   ├── user.controller.js
+│   │   │   └── workout.controller.js
+│   │   ├── middlewares/
+│   │   │   └── auth.middleware.js
+│   │   └── routes/
+│   │       ├── auth.routes.js
+│   │       ├── user.routes.js
+│   │       └── workout.routes.js
+│   ├── config/
+│   │   └── database.js
+│   ├── models/
+│   │   ├── User.model.js
+│   │   └── Workout.model.js
+│   ├── websocket/
+│   │   ├── index.js
+│   │   └── rules/        ← to be implemented
+│   └── services/
+├── app.js
+├── index.js
+├── .env
+└── package.json
+```
+
+## Completed Work
+
+The following functionality is already implemented and working:
+
+* **User model** (`src/models/User.model.js`) with a Mongoose pre‑save hook that hashes passwords using bcryptjs.
+* **Workout model** (`src/models/Workout.model.js`) with an embedded exercise schema.
+* **Database connection** (`src/config/database.js`) establishing a MongoDB connection via Mongoose.
+* **Authentication and user profile routes/controllers** (`src/api/routes/auth.routes.js`, `src/api/controllers/auth.controller.js`, `src/api/routes/user.routes.js`, `src/api/controllers/user.controller.js`).  These provide registration, login, and profile retrieval/update endpoints and are protected by JWTs.
+* **Authentication middleware** (`src/api/middlewares/auth.middleware.js`) that verifies JWTs and attaches the user to the request.
+* **Workout history API**: controller and routes for listing, retrieving, and deleting a user's workouts (`src/api/controllers/workout.controller.js`, `src/api/routes/workout.routes.js`), mounted in `app.js` under `/api/v1/workouts`.
+* **Express application** (`app.js`) and **server entry point** (`index.js`) configured with CORS, Helmet, JSON parsing, and route mounting.
+* **Initial Socket.IO setup** (`src/websocket/index.js`) that listens for `session:start`, `pose:update`, and `session:end` events.
+
+## Remaining Tasks and Enhancements
+
+There are two broad categories of work still outstanding: **code refinements** to harden the existing API and **new feature development** for real‑time exercise feedback.
+
+### 1. Code Refinement
+
+1. **Input Validation**
+   * Integrate a validation library (e.g. `express‑validator` or `joi`) to sanitize and validate incoming request bodies across authentication, user profile, and workout routes.
+   * Ensure that validation errors return a clear, consistent structure.
+
+2. **Standardized API Responses**
+   * Create a helper or middleware that wraps all responses in a uniform JSON envelope, for example:
+     * Success: `{ success: true, data: ... }`
+     * Error: `{ success: false, error: ... }`
+   * Apply this pattern across all controllers to improve frontend consistency.
+
+3. **Global Error Handler**
+   * Add a final error‑handling middleware in `app.js` that catches errors passed via `next(error)`, logs them, and returns a generic 500 Internal Server Error without exposing internal details.
+
+4. **Request Logging**
+   * Integrate a logging middleware like `morgan` in development to log HTTP method, URL, status code, and response time for every request.
+
+### 2. Real‑Time Exercise Rules Engine (Phase 2)
+
+The most complex remaining feature is delivering real‑time feedback during workout sessions via WebSocket.  Implement the following:
+
+1. **Exercise Logic Modules**
+   * Create a new directory `src/websocket/rules`.
+   * For each supported exercise (e.g. squat, pushup), create a file (e.g. `squat.js`, `pushup.js`) exporting a function that accepts processed pose landmark data.
+   * In each function:
+     * Determine the current phase of the movement (e.g. lowering vs. rising).
+     * Validate form using joint angles and vectors (e.g. knees behind toes, back straight).
+     * Detect completion of a valid repetition and increment a rep counter.
+     * Return feedback such as `{ repCount, feedback }`.
+
+2. **Integrate Rules Engine with WebSocket**
+   * Modify the `pose:update` handler in `src/websocket/index.js` to import and invoke the appropriate rule module based on the current exercise.
+   * Emit `feedback:new` events back to the client with real‑time rep counts and form corrections.
+
+3. **Session State Management**
+   * On `session:start`, create an in‑memory store (or transient database record) to track the current exercise, set counts, and rep counts for the active session.
+   * On `session:end`, finalize the workout: compute duration and calories burned, persist a `Workout` document to MongoDB, and emit a `session:summary` event back to the client.
+
+### 3. Next Steps
+
+Begin implementing the **Real‑Time Exercise Rules Engine**.  Start by creating the `src/websocket/rules` directory and develop logic for one exercise (for example, a squat).  Once the rule module is ready, integrate it into the `pose:update` handler within `src/websocket/index.js`.
+
+Focus on writing modular, testable code with clear comments explaining the logic behind joint angle calculations and repetition detection.  Use the refinement tasks above to gradually improve the robustness and consistency of the API while developing new features.

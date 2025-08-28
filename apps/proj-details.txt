@@ -1,0 +1,228 @@
+Backend Detailed Structure (apps/api)
+This section details the server-side application responsible for all business logic, database interactions, and real-time communication.
+
+Root Files
+package.json
+
+Module: Project Management
+
+Purpose: Defines the backend project's metadata, scripts (dev, start), and lists all its npm dependencies (e.g., express, mongoose).
+
+.env
+
+Module: Configuration
+
+Purpose: Stores environment-specific and secret variables.
+
+Functionality: Will hold the MONGO_URI, JWT_SECRET, and PORT. This file is ignored by Git to keep secrets safe.
+
+src/ - Source Code Root
+index.js
+
+Module: Server Initialization
+
+Purpose: The main entry point of the application.
+
+Functionality: Imports the Express app, connects to the database, initializes the Socket.IO server, and starts the HTTP server to listen for requests on the specified port.
+
+app.js
+
+Module: Express Application Core
+
+Purpose: Configures the Express application itself.
+
+Functionality: Imports and uses all core middleware (like cors, helmet, express.json). It connects the API routers (e.g., auth.routes.js) to the main application instance.
+
+src/config/ - Configuration Files
+database.js
+
+Module: Database
+
+Purpose: Manages the connection to the MongoDB database.
+
+Functionality: Exports a single function that uses Mongoose to connect to the MongoDB instance specified in the .env file. Includes error handling for connection failures.
+
+src/models/ - Database Schemas
+User.model.js
+
+Module: User Management
+
+Purpose: Defines the data structure for a "User" in the database.
+
+Functionality: Creates a Mongoose schema with fields for name, email (unique), password, age, weight, height, and fitnessGoals. It will have a pre-save middleware hook to automatically hash the password field using bcryptjs before any user document is saved.
+
+Workout.model.js
+
+Module: Workout Tracking
+
+Purpose: Defines the data structure for a completed "Workout Session."
+
+Functionality: Creates a Mongoose schema that links to a User (ref: 'User'). It will store an array of exercises performed (name, reps, sets, form score), the total duration, calories burned, and the date of the session.
+
+src/api/ - RESTful API Logic
+routes/auth.routes.js
+
+Module: Authentication Routing
+
+Purpose: Defines the API routes related to user authentication.
+
+Functionality: Sets up the Express router for endpoints like POST /api/v1/auth/register and POST /api/v1/auth/login. It maps these routes to the corresponding controller functions.
+
+routes/user.routes.js
+
+Module: User Profile Routing
+
+Purpose: Defines routes for managing user data.
+
+Functionality: Sets up endpoints like GET /api/v1/users/me (to get profile) and PUT /api/v1/users/me (to update profile). These routes will be protected by the authentication middleware.
+
+controllers/auth.controller.js
+
+Module: Authentication Logic
+
+Purpose: Contains the core functions that handle the logic for registration and login.
+
+Functionality: Exports registerUser and loginUser functions. registerUser will validate input, check if an email already exists, hash the password, create a new user, and send a response. loginUser will find a user, compare the hashed password, and if successful, generate and return a JSON Web Token (JWT).
+
+controllers/user.controller.js
+
+Module: User Profile Logic
+
+Purpose: Contains functions for retrieving and updating user data.
+
+Functionality: Exports getUserProfile (finds user by ID from the JWT and returns their data, excluding the password) and updateUserProfile (updates user fields and returns the updated document).
+
+middlewares/auth.middleware.js
+
+Module: Security & Authorization
+
+Purpose: Protects API routes from unauthorized access.
+
+Functionality: Exports a middleware function that reads the JWT from the Authorization header, verifies it, and attaches the user's ID to the request object (req.user). If the token is invalid or missing, it sends a 401 Unauthorized error.
+
+src/websocket/ - Real-time Features
+index.js
+
+Module: Real-time Communication
+
+Purpose: To set up and manage all live WebSocket connections.
+
+Functionality: Initializes the Socket.IO server. It will listen for new client connections and handle the main workout events like session:start, pose:update, and session:end. It acts as a dispatcher, passing incoming pose:update data to the correct exercise "rules engine."
+
+Frontend Detailed Structure (apps/web)
+This section details the client-side application that users interact with.
+
+Root Files
+package.json
+
+Module: Project Management
+
+Purpose: Defines the frontend project's metadata, scripts (dev, build), and lists all its npm dependencies (e.g., react, next, tailwindcss).
+
+app/ - Next.js App Router
+globals.css
+
+Module: Styling
+
+Purpose: The application's global stylesheet.
+
+Functionality: Contains the three base Tailwind CSS directives (@tailwind base; etc.) and any custom global styles.
+
+layout.jsx
+
+Module: App Layout
+
+Purpose: The root layout component that wraps every page.
+
+Functionality: Defines the main <html> and <body> tags. It imports globals.css and can be used to render shared UI elements like a main navigation bar or footer.
+
+page.jsx
+
+Module: Routing
+
+Purpose: The component for the main public landing page (route: /).
+
+Functionality: Renders the content that visitors see before they log in.
+
+login/page.jsx
+
+Module: Authentication
+
+Purpose: The component for the user login form (route: /login).
+
+Functionality: Renders the login form. It will use useState to manage email and password fields. On submit, it will call a function (from useAuth.js) to send a request to the backend API.
+
+register/page.jsx
+
+Module: Authentication
+
+Purpose: The component for the user registration form (route: /register).
+
+Functionality: Similar to the login page, but with additional fields like "Name." Manages form state and handles submission.
+
+dashboard/page.jsx
+
+Module: User Dashboard
+
+Purpose: The main page users see after logging in (route: /dashboard).
+
+Functionality: This will be a protected route. It will fetch and display user summary data, such as recent activity and progress stats, using components like StatCard.
+
+profile/page.jsx
+
+Module: User Profile Management
+
+Purpose: The page where users can view and edit their profile (route: /profile).
+
+Functionality: A protected route that displays user information (name, age, weight) in a form and allows them to update it.
+
+components/ - Reusable React Components
+ui/Button.jsx
+
+Module: UI Kit
+
+Purpose: A generic, reusable button for consistent styling across the app.
+
+Functionality: A functional component styled with Tailwind CSS that accepts children for the text and any other standard button props (onClick, type, disabled).
+
+ui/Input.jsx
+
+Module: UI Kit
+
+Purpose: A generic, reusable text input field.
+
+Functionality: A functional component styled with Tailwind CSS that accepts all standard input props (type, placeholder, value, onChange).
+
+ui/Card.jsx
+
+Module: UI Kit
+
+Purpose: A styled container for displaying content sections.
+
+Functionality: A simple component that renders a div with padding, a background color, and rounded corners, with children rendered inside.
+
+dashboard/StatCard.jsx
+
+Module: User Dashboard
+
+Purpose: A specialized card for displaying a single piece of data on the dashboard.
+
+Functionality: A component that takes props like title ("Calories Burned") and value ("1,200") and displays them in a nicely formatted card.
+
+hooks/ - Custom React Hooks
+useAuth.js
+
+Module: State Management & Authentication
+
+Purpose: A custom hook to centralize all authentication logic.
+
+Functionality: Manages the user's authentication state (user data, token, loading status). It will export functions like login, logout, and register. It will interact with the apiClient to make requests and handle storing/removing the JWT from browser storage (e.g., localStorage).
+
+lib/ - Library & Helper Files
+apiClient.js
+
+Module: API Communication
+
+Purpose: A centralized helper for making requests to the backend API.
+
+Functionality: Exports an axios instance with a pre-configured baseURL (your backend URL). It will also include an interceptor to automatically add the JWT Authorization header to every outgoing request.

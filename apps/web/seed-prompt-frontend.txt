@@ -1,0 +1,169 @@
+Your Goal: You are an expert frontend developer specializing in React and Next.js. Your task is to help me build the user interface for an AI Fitness Trainer application by generating the necessary code for each file as I request it.
+
+Technology Stack:
+
+Framework: Next.js (App Router)
+
+UI Library: React with Hooks
+
+Styling: Tailwind CSS
+
+API Communication: axios
+
+Package Manager: We will use npm for this project.
+
+Project Structure:
+We are building the frontend within a specific file structure. All code you generate must be for the files listed below. The root for this frontend project is apps/web/.
+
+apps/web/
+├── app/
+│   ├── dashboard/
+│   │   └── page.jsx
+│   ├── login/
+│   │   └── page.jsx
+│   ├── profile/
+│   │   └── page.jsx
+│   ├── register/
+│   │   └── page.jsx
+│   ├── globals.css
+│   ├── layout.jsx
+│   └── page.jsx
+├── components/
+│   ├── ui/
+│   │   ├── Button.jsx
+│   │   ├── Card.jsx
+│   │   └── Input.jsx
+├── hooks/
+│   └── useAuth.js
+├── lib/
+│   └── apiClient.js
+└── package.json
+Development Plan:
+We will build the application in logical phases, starting with creating reusable UI components and then building the authentication pages. Please ensure all generated code is clean, modern JSX, uses functional components with hooks, and is well-commented to explain the logic and props.
+
+Your first task is to provide the code for the reusable UI components. Generate the complete, runnable code for two files:
+
+apps/web/components/ui/Button.jsx
+
+apps/web/components/ui/Input.jsx
+
+These components should be styled with Tailwind CSS to look modern and clean, fitting a dark-themed application. They should be functional and accept all standard HTML props.
+
+
+
+Project Overview
+You are an expert frontend developer tasked with building the client-side application for an AI Fitness Trainer. A complete backend API has already been developed using Node.js, Express, and MongoDB. The backend handles user authentication, profile management, and provides a real-time WebSocket server for live workout tracking.
+
+Your goal is to create a modern, responsive, and intuitive user interface that consumes this backend, providing users with a seamless and interactive fitness experience.
+
+Backend API Summary
+The existing backend provides the following capabilities:
+
+Technology Stack: Node.js, Express, MongoDB, Socket.IO, JWT for auth.
+
+Authentication Endpoints (Public):
+
+POST /api/v1/auth/register: Creates a new user.
+
+POST /api/v1/auth/login: Authenticates a user and returns a JWT.
+
+User Profile Endpoints (Private):
+
+GET /api/v1/users/me: Retrieves the logged-in user's profile.
+
+PUT /api/v1/users/me: Updates the logged-in user's profile.
+
+Real-time WebSocket Events:
+
+connection: A user connects to the server.
+
+session:start: A client emits this to begin a workout.
+
+pose:update: A client streams pose estimation data to the server.
+
+session:end: A client emits this to finalize a workout.
+
+Your Mission: Build the Frontend
+Your primary task is to build the frontend application from the ground up.
+
+Suggested Technology Stack:
+
+Framework: React (using Create React App or Vite)
+
+Styling: Tailwind CSS or a component library like Material-UI.
+
+State Management: React Context API or Zustand for managing user authentication state.
+
+API Communication: Axios or the native Fetch API.
+
+Real-time Communication: socket.io-client library.
+
+Pose Estimation: TensorFlow.js with a model like MoveNet or PoseNet to analyze the user's movements via their webcam.
+
+Development Plan
+Build the application in the following logical phases:
+
+Phase 1: Project Setup and Authentication
+Initialize React Project: Set up a new React application.
+
+Structure Folders: Create a logical folder structure (e.g., /pages, /components, /services, /hooks, /context).
+
+Create Authentication Pages:
+
+Build a Register Page with a form for name, email, and password.
+
+Build a Login Page with a form for email and password.
+
+Implement Auth Logic:
+
+Create an API service file to handle fetch or axios requests to the backend.
+
+Upon successful login/registration, receive the JWT from the API.
+
+Store the JWT securely (e.g., in localStorage or sessionStorage) and update the application's global state to reflect that the user is authenticated.
+
+Set up an API client instance (e.g., an Axios instance) that automatically includes the JWT in the Authorization header for all subsequent requests.
+
+Phase 2: Protected Routes and User Dashboard
+Implement Protected Routes: Create a component that checks for a valid JWT and only renders its children (e.g., the dashboard) if the user is authenticated. Otherwise, it should redirect to the login page.
+
+Build the Dashboard Page:
+
+When the page loads, make a GET request to /api/v1/users/me to fetch the user's profile data.
+
+Display the user's name, email, age, weight, etc.
+
+Create a Profile Editing Feature:
+
+Add a form to the dashboard that allows users to update their profile information.
+
+On submit, make a PUT request to /api/v1/users/me with the new data.
+
+Phase 3: The Real-Time Workout Session
+This is the core feature of the application.
+
+Set up Socket.IO Client: In a dedicated workout component, establish a connection to the backend WebSocket server.
+
+Integrate Webcam and TensorFlow.js:
+
+Create a component that requests access to the user's webcam.
+
+Load the TensorFlow.js MoveNet (or PoseNet) model.
+
+In a loop (using requestAnimationFrame), draw the webcam video to a <canvas> and run the pose estimation model on the video feed to get the user's key body points in real-time.
+
+Implement the Workout Event Flow:
+
+When the user starts a workout, emit a session:start event to the server.
+
+On every frame that you get new pose data from TensorFlow.js, emit a pose:update event to the server, sending the key points.
+
+When the user finishes their workout, emit a session:end event.
+
+Display Feedback:
+
+Create UI elements to display the current exercise, a rep counter, and a form-correction feedback area.
+
+Listen for any feedback events from the server (e.g., feedback:new) and display the information to the user.
+
+Your first task is to begin Phase 1: Set up the React project and build the user registration and login functionality.
