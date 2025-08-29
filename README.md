@@ -165,5 +165,8 @@ apps/web
 │  └─ globals.css
 └─ package.json
 ```
+** TESTING COMPLETE
+
+<img width="1440" height="900" alt="Screenshot 2025-08-30 at 2 20 29 AM" src="https://github.com/user-attachments/assets/d11c0ba4-85d9-40d1-98d8-90af39fd3581" />
 
 **License Frontend:** MIT © 2025
