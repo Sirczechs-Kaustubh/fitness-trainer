@@ -1,129 +1,136 @@
 // apps/api/src/api/controllers/auth.controller.js
 
-// Import the User model to interact with the users collection in the database.
 const User = require('../../models/User.model');
-// Import jsonwebtoken for creating JWTs.
 const jwt = require('jsonwebtoken');
-// Import bcryptjs to compare passwords during login.
 const bcrypt = require('bcryptjs');
+const crypto = require('crypto'); // Ensure this is the native Node.js crypto module
+const asyncHandler = require('../../utils/asyncHandler');
+const { successResponse, errorResponse } = require('../../utils/responseHandler');
 
-/**
- * @function generateToken
- * @description Generates a JSON Web Token (JWT) for a given user ID.
- * @param {string} id - The user's MongoDB document ID.
- * @returns {string} The generated JWT.
- */
+// --- Helper function to generate JWT ---
 const generateToken = (id) => {
-    return jwt.sign({
-        id
-    }, process.env.JWT_SECRET, {
-        expiresIn: '30d', // The token will expire in 30 days.
+    return jwt.sign({ id }, process.env.JWT_SECRET, {
+        expiresIn: '30d',
     });
 };
 
 /**
  * @controller registerUser
- * @description Handles the registration of a new user.
- * It validates input, checks for existing users, creates a new user, and returns a JWT.
- * @route POST /api/v1/auth/register
- * @access Public
  */
-const registerUser = async (req, res) => {
-    const {
-        name,
-        email,
-        password
-    } = req.body;
+const registerUser = asyncHandler(async (req, res) => {
+    const { name, email, password } = req.body;
 
-    try {
-        // 1. Validate input
-        if (!name || !email || !password) {
-            return res.status(400).json({
-                message: 'Please enter all fields'
-            });
-        }
-
-        // 2. Check if user already exists
-        const userExists = await User.findOne({
-            email
-        });
-        if (userExists) {
-            return res.status(400).json({
-                message: 'User with this email already exists'
-            });
-        }
-
-        // 3. Create a new user instance. The password will be hashed by the pre-save hook in the User model.
-        const user = await User.create({
-            name,
-            email,
-            password,
-        });
-
-        // 4. If user creation is successful, generate a token and send response
-        if (user) {
-            res.status(201).json({
-                _id: user._id,
-                name: user.name,
-                email: user.email,
-                token: generateToken(user._id),
-            });
-        } else {
-            res.status(400).json({
-                message: 'Invalid user data'
-            });
-        }
-    } catch (error) {
-        console.error('Registration Error:', error.message);
-        res.status(500).json({
-            message: 'Server Error'
-        });
+    const userExists = await User.findOne({ email });
+    if (userExists) {
+        return errorResponse(res, 400, 'User with this email already exists');
     }
-};
+
+    const user = await User.create({ name, email, password });
+
+    if (user) {
+        successResponse(res, 201, {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            token: generateToken(user._id),
+        });
+    } else {
+        errorResponse(res, 400, 'Invalid user data');
+    }
+});
 
 /**
  * @controller loginUser
- * @description Authenticates an existing user.
- * It finds the user by email, compares the provided password with the stored hash, and returns a JWT if successful.
- * @route POST /api/v1/auth/login
- * @access Public
  */
-const loginUser = async (req, res) => {
-    const {
-        email,
-        password
-    } = req.body;
+const loginUser = asyncHandler(async (req, res) => {
+    const { email, password } = req.body;
 
-    try {
-        // 1. Find the user by email. We explicitly select the password field because it's excluded by default in the schema.
-        const user = await User.findOne({
-            email
-        }).select('+password');
+    const user = await User.findOne({ email }).select('+password');
 
-        // 2. If user exists and password matches, send back user data and token
-        if (user && (await bcrypt.compare(password, user.password))) {
-            res.json({
-                _id: user._id,
-                name: user.name,
-                email: user.email,
-                token: generateToken(user._id),
-            });
-        } else {
-            // 3. If user not found or password doesn't match, send an error
-            res.status(401).json({
-                message: 'Invalid email or password'
-            });
-        }
-    } catch (error) {
-        console.error('Login Error:', error.message);
-        res.status(500).json({
-            message: 'Server Error'
+    if (user && (await bcrypt.compare(password, user.password))) {
+        successResponse(res, 200, {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            token: generateToken(user._id),
         });
+    } else {
+        errorResponse(res, 401, 'Invalid email or password');
     }
-};
+});
 
-// Export the controller functions to be used in the auth routes.
+/**
+ * @controller logoutUser
+ */
+const logoutUser = asyncHandler(async (req, res) => {
+    successResponse(res, 200, { message: 'Logged out successfully' });
+});
+
+/**
+ * @controller forgotPassword
+ */
+const forgotPassword = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        return errorResponse(res, 400, 'Please provide an email');
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+        return successResponse(res, 200, { message: 'If a user with that email exists, a token has been generated.' });
+    }
+
+    const resetToken = user.createPasswordResetToken();
+    await user.save({ validateBeforeSave: false });
+
+    successResponse(res, 200, {
+        message: 'Token generated successfully. Use this token to reset your password.',
+        resetToken: resetToken,
+    });
+});
+
+/**
+ * @controller resetPassword
+ */
+const resetPassword = asyncHandler(async (req, res) => {
+    // 1. Hash the token from the URL to match the one in the DB
+    const hashedToken = crypto
+        .createHash('sha256')
+        .update(req.params.token)
+        .digest('hex');
+
+    // 2. Find the user by the hashed token and check if it's not expired
+    const user = await User.findOne({
+        passwordResetToken: hashedToken,
+        passwordResetExpires: { $gt: Date.now() },
+    });
+
+    if (!user) {
+        return errorResponse(res, 400, 'Token is invalid or has expired');
+    }
+
+    if (!req.body.password || req.body.password.length < 6) {
+        return errorResponse(res, 400, 'Please provide a new password with at least 6 characters');
+    }
+
+    // 3. Update password and clear the reset token fields
+    user.password = req.body.password;
+    user.passwordResetToken = undefined;
+    user.passwordResetExpires = undefined;
+    await user.save(); // The pre-save hook will hash the new password
+
+    // 4. Log the user in by sending a new JWT
+    const token = generateToken(user._id);
+    successResponse(res, 200, {
+        message: 'Password reset successful.',
+        token,
+    });
+});
+
 module.exports = {
     registerUser,
     loginUser,
+    logoutUser,
+    forgotPassword,
+    resetPassword,
 };

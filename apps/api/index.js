@@ -7,11 +7,11 @@ require('dotenv').config();
 // Import the built-in 'http' module to create an HTTP server.
 const http = require('http');
 // Import the configured Express application from app.js.
-const app = require('../app');
+const app = require('./app');
 // Import the database connection function.
-const connectDB = require('./config/database');
+const connectDB = require('./src/config/database');
 // Import the Socket.IO setup function.
-const initializeSocket = require('./websocket');
+const initializeSocket = require('./src/websocket');
 
 // --- 1. Connect to Database ---
 // Call the function to establish a connection with the MongoDB database.

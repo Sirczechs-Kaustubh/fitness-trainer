@@ -1,75 +1,68 @@
-// apps/api/src/models/Workout.model.js
-
-// Import the mongoose module to define a schema and model.
 const mongoose = require('mongoose');
-const { Schema } = mongoose;
+const mongoosePaginate = require('mongoose-paginate-v2');
 
-/**
- * @schema ExerciseSchema
- * @description A sub-document schema to detail individual exercises within a workout session.
- * This is not a model itself but will be embedded within the Workout model.
- */
-const ExerciseSchema = new Schema({
-    // The name of the exercise, e.g., "Push-up", "Squat".
+const exerciseLogSchema = new mongoose.Schema({
+    exercise: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Exercise',
+    },
     name: {
         type: String,
         required: [true, 'Exercise name is required'],
-        trim: true,
     },
-    // The number of repetitions performed in each set.
     reps: {
         type: Number,
-        required: [true, 'Reps are required'],
+        default: 0,
     },
-    // The number of sets completed for the exercise.
     sets: {
         type: Number,
-        required: [true, 'Sets are required'],
+        default: 0,
     },
-    // A score from the AI trainer evaluating the user's form, typically on a scale (e.g., 1-100).
     formScore: {
         type: Number,
         min: 0,
         max: 100,
     },
-});
+}, { _id: false });
 
-/**
- * @schema WorkoutSchema
- * @description Defines the data structure for a workout session.
- * Each workout is linked to a user and contains details about the session.
- */
-const WorkoutSchema = new Schema({
-    // A reference to the User who performed this workout. This creates a link between the two models.
+const workoutSchema = new mongoose.Schema({
     user: {
-        type: Schema.Types.ObjectId,
-        ref: 'User', // This must match the model name we gave to mongoose.model() for the User
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
         required: true,
-        index: true, // Adding an index on the user field can improve query performance
+        index: true,
     },
-    // An array of exercises performed during the session, using the sub-document schema defined above.
-    exercises: [ExerciseSchema],
-    // The total duration of the workout session in minutes.
-    duration: {
-        type: Number, // Stored in minutes
-        required: [true, 'Workout duration is required'],
+    status: {
+        type: String,
+        enum: ['in-progress', 'completed'],
+        default: 'in-progress',
     },
-    // An estimate of the total calories burned during the session.
-    caloriesBurned: {
-        type: Number,
+    plannedExercises: {
+        type: [String],
     },
-    // The date and time when the workout session occurred. Defaults to the current date and time.
+    exercises: [exerciseLogSchema],
     date: {
         type: Date,
         default: Date.now,
     },
+    duration: { // in minutes
+        type: Number,
+        default: 0,
+    },
+    caloriesBurned: {
+        type: Number,
+        default: 0,
+    },
+    endTime: { // <-- THE FIX IS HERE
+        type: Date,
+        index: true,
+    },
 }, {
-    // Automatically add 'createdAt' and 'updatedAt' fields.
-    timestamps: true,
+    timestamps: true, // Adds createdAt and updatedAt
 });
 
-// Create the Workout model from the schema.
-const Workout = mongoose.model('Workout', WorkoutSchema);
+workoutSchema.plugin(mongoosePaginate);
 
-// Export the Workout model for use in other parts of the application.
+const Workout = mongoose.model('Workout', workoutSchema);
+
 module.exports = Workout;
