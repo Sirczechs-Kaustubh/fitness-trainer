@@ -1,0 +1,28 @@
+# Ignore dependencies
+apps/api/node_modules/
+apps/web/node_modules/
+
+# Environment files
+apps/api/.env
+apps/web/.env.local
+apps/web/.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# Build outputs
+apps/api/dist/
+apps/web/.next/
+apps/web/out/
+apps/web/dist/
+
+# Coverage
+coverage/
+
+# OS / Editor junk
+.DS_Store
+.vscode/
+.idea/

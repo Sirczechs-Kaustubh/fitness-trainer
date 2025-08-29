@@ -1,0 +1,303 @@
+🚀 Project FormFit – Development Workflow & Phases
+
+🔹 Phase 1: Project Setup & Foundations
+Goal: Get the skeleton of the app running, with both frontend and backend integrated.
+Tasks:
+Initialize monorepo structure (apps/api, apps/web) with shared ESLint/Prettier configs.
+
+
+Backend setup:
+
+
+Install express, mongoose, dotenv, jsonwebtoken, bcryptjs, socket.io.
+
+
+Setup app.js & index.js with basic routes.
+
+
+Connect MongoDB (test schema with User).
+
+
+Frontend setup:
+
+
+Install next, tailwindcss, axios, socket.io-client, chart.js.
+
+
+Setup layout + global styles.
+
+
+Connect frontend → backend with a test API call (/ping).
+
+
+✅ Deliverable: “Hello World” backend + frontend with working API and DB connection.
+
+🔹 Phase 2: Authentication & User Management
+Goal: Make sure users can register, login, and manage profiles securely.
+Backend (apps/api):
+auth.routes.js → register, login, logout, reset password.
+
+
+JWT middleware (auth.middleware.js).
+
+
+Password hashing (bcrypt).
+
+
+User model: { name, email, password, age, weight, height, fitnessGoals }.
+
+
+Frontend (apps/web):
+Pages: /register, /login, /profile.
+
+
+Hook: useAuth.js for token management (localStorage).
+
+
+Protect routes (dashboard requires login).
+
+
+✅ Deliverable: Full login system with JWT & protected pages.
+
+🔹 Phase 3: Dashboard & User Stats
+Goal: Give the user a central hub for fitness data.
+Backend:
+API: /user/stats (pull BMI, progress, reminders).
+
+
+/workouts/history → return logs.
+
+
+Frontend:
+Dashboard page:
+
+
+Welcome message (user.name).
+
+
+BMI calculator.
+
+
+Charts: weekly/monthly progress using Chart.js.
+
+
+Quick “Start Workout” button.
+
+
+✅ Deliverable: Personalized dashboard with analytics.
+
+🔹 Phase 4: Exercise Library (8 Core Exercises)
+Goal: Implement MediaPipe Pose detection and integrate each exercise with rules.
+Backend (exercise definitions):
+Create Exercise.model.js with:
+
+ { name, description, anglesTracked, rules }
+
+
+Store 8 exercises with metadata.
+
+
+Frontend:
+Page: /exercises → list of exercises.
+
+
+Individual exercise pages with:
+
+
+Live camera feed (MediaPipe).
+
+
+Form instructions.
+
+
+Overlay for detected skeleton.
+
+
+Feedback text + rep counter.
+
+
+✅ Deliverable: Each of the 8 exercises detectable with real-time overlay + rep tracking.
+
+🔹 Phase 5: Real-time Pose Detection & Feedback
+Goal: Bring in real-time interactivity with Socket.IO & WebRTC.
+Backend:
+WebSocket rules engine (in websocket/rules/).
+
+
+Real-time communication for:
+
+
+Rep counting updates.
+
+
+Audio/text feedback.
+
+
+Performance scoring.
+
+
+Frontend:
+WebRTC integration for smooth camera streaming.
+
+
+Socket.io client listens for backend feedback.
+
+
+Visual overlays (color-coded: green = good, red = fix posture).
+
+
+Audio cues for corrections.
+
+
+✅ Deliverable: Real-time feedback loop (<100ms latency).
+
+🔹 Phase 6: Workout Sessions
+Goal: Make structured workouts possible.
+Backend:
+API: /workouts/start, /workouts/end.
+
+
+Store sessions in DB: { userId, date, exercises, reps, score }.
+
+
+Frontend:
+Workout builder (select exercises + reps/sets).
+
+
+Session view:
+
+
+Timer (exercise/rest periods).
+
+
+Live rep counter.
+
+
+Post-workout summary with score + calories burned.
+
+
+✅ Deliverable: Users can run full workouts, tracked & saved.
+
+🔹 Phase 7: Analytics & Progress Tracking
+Goal: Visualize progress in detail.
+Backend:
+/progress API → fetch weekly/monthly stats.
+
+
+Metrics: calories burned, reps done, best score, accuracy trend.
+
+
+Frontend:
+Chart.js visualizations:
+
+
+Line graph → form accuracy.
+
+
+Bar chart → calories per week.
+
+
+Heatmap → workout frequency.
+
+
+✅ Deliverable: Interactive analytics dashboard.
+
+🔹 Phase 8: Workout History & Data Management
+Goal: Give users historical context of their performance.
+Backend:
+/workouts/history → returns past sessions.
+
+
+Optional: upload video recordings for review.
+
+
+Frontend:
+History page:
+
+
+List of past sessions.
+
+
+Expand to view exercise-by-exercise performance.
+
+
+Export to CSV/JSON.
+
+
+✅ Deliverable: Rich workout history with export.
+
+🔹 Phase 9: Demo & Tutorial Section
+Goal: Educate users with interactive guides.
+Frontend:
+Demo mode for each exercise:
+
+
+Animated MediaPipe avatar.
+
+
+Correct vs incorrect form side-by-side.
+
+
+Camera calibration tool before starting workouts.
+
+
+✅ Deliverable: Fully guided tutorials for first-time users.
+
+🔹 Phase 10: Security & Optimization
+Goal: Make the app production-ready.
+Security:
+Helmet.js headers.
+
+
+Input sanitization.
+
+
+Rate limiting for APIs.
+
+
+Strong JWT implementation.
+
+
+Optimization:
+Lazy load components.
+
+
+WebGL acceleration for MediaPipe.
+
+
+IndexedDB/local caching for offline support.
+
+
+✅ Deliverable: Stable, secure, optimized final app.
+
+🔄 Project Workflow (Reference)
+Here’s the efficient workflow for dev & delivery:
+Setup & Config → Initialize repo, backend & frontend skeleton.
+
+
+Authentication First → Users can login/register securely.
+
+
+Dashboard Basics → Core user experience before workouts.
+
+
+Exercise Library → Core AI feature (pose detection).
+
+
+Real-time Feedback → Add Socket.IO + WebRTC interactivity.
+
+
+Workout Sessions → Make training structured & trackable.
+
+
+Analytics & History → Long-term value (charts, trends).
+
+
+Demo & Tutorials → Educate users for retention.
+
+
+Security & Optimization → Harden before release.
+
+
+Final QA & Deployment → Push to production.
+
