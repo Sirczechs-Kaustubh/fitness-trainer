@@ -1,6 +1,6 @@
 const Workout = require('../../models/Workout.model');
 const asyncHandler = require('../../utils/asyncHandler');
-const { successResponse } = require('../../utils/responseHandler');
+const { successResponse, errorResponse } = require('../../utils/responseHandler');
 
 /**
  * @desc    Get a paginated list of the user's workout history
@@ -25,13 +25,12 @@ const getWorkoutHistory = asyncHandler(async (req, res) => {
     const result = await Workout.paginate(query, options);
 
     if (!result.docs || result.docs.length === 0) {
-        return successResponse(res, 200, { message: "No workout history found." });
+        // Return an empty docs array for consistent client handling
+        return successResponse(res, 200, { message: "No workout history found.", docs: [] });
     }
 
-    return successResponse(res, 200, {
-        message: "Workout history retrieved successfully.",
-        data: result
-    });
+    // Flatten result into the data payload to avoid nested data.data
+    return successResponse(res, 200, { message: "Workout history retrieved successfully.", ...result });
 });
 
 /**
@@ -50,13 +49,10 @@ const getWorkoutById = asyncHandler(async (req, res) => {
     }).populate('exercises.exercise');
 
     if (!workout) {
-        return successResponse(res, 404, { message: "Workout not found in your history." });
+        return errorResponse(res, 404, "Workout not found in your history.");
     }
 
-    return successResponse(res, 200, {
-        message: "Workout details retrieved successfully.",
-        data: workout
-    });
+    return successResponse(res, 200, { message: "Workout details retrieved successfully.", workout });
 });
 
 /**
@@ -74,12 +70,10 @@ const deleteWorkout = asyncHandler(async (req, res) => {
     });
 
     if (!workout) {
-        return successResponse(res, 404, { message: "Workout not found in your history." });
+        return errorResponse(res, 404, "Workout not found in your history.");
     }
 
-    return successResponse(res, 200, {
-        message: "Workout successfully deleted from your history."
-    });
+    return successResponse(res, 200, { message: "Workout successfully deleted from your history." });
 });
 
 
