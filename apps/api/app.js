@@ -10,6 +10,7 @@ const authRoutes = require('./src/api/routes/auth.routes');
 const userRoutes = require('./src/api/routes/user.routes');
 const workoutRoutes = require('./src/api/routes/workout.routes');
 const { globalErrorHandler } = require('./src/api/middlewares/errorHandler'); // Import error handler
+const planRoutes = require('./src/api/routes/plan.routes');
 // in app.js
 const exerciseRoutes = require('./src/api/routes/exercise.routes');
 const progressRoutes = require('./src/api/routes/progress.routes');
@@ -41,6 +42,7 @@ app.use('/api/v1/workouts', workoutRoutes);
 
 app.use('/api/v1/exercises', exerciseRoutes);
 app.use('/api/v1/progress', progressRoutes);
+app.use('/api/v1/plans', planRoutes);
 
 // Mount the new history routes
 app.use('/api/v1/history', historyRoutes);

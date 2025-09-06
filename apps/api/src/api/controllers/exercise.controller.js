@@ -1,6 +1,7 @@
 // apps/api/src/api/controllers/exercise.controller.js
 
 const Exercise = require('../../models/Exercise.model');
+const Tutorial = require('../../models/Tutorial.model');
 
 /**
  * @controller getAllExercises
@@ -136,4 +137,49 @@ module.exports = {
     createExercise,
     updateExercise,
     deleteExercise,
+    getExerciseExample,
 };
+
+/**
+ * @controller getExerciseExample
+ * @description Returns a best instructional URL for an exercise name. Prefers Exercise.videoUrl; falls back to Tutorial.videoUrl.
+ * @route GET /api/v1/exercises/example?name=Push-up
+ * @access Private (All authenticated users)
+ */
+async function getExerciseExample(req, res) {
+    try {
+        const name = (req.query.name || '').trim();
+        if (!name) return res.status(400).json({ message: 'Missing name query param' });
+
+        // 1) Try exact exercise name match
+        const ex = await Exercise.findOne({ name });
+        if (ex && ex.videoUrl) {
+            return res.status(200).json({ name: ex.name, videoUrl: ex.videoUrl, source: 'exercise', exerciseId: ex._id });
+        }
+
+        // 2) Try case-insensitive like match in exercises
+        if (!ex) {
+            const ex2 = await Exercise.findOne({ name: { $regex: new RegExp(`^${name}$`, 'i') } });
+            if (ex2 && ex2.videoUrl) {
+                return res.status(200).json({ name: ex2.name, videoUrl: ex2.videoUrl, source: 'exercise', exerciseId: ex2._id });
+            }
+        }
+
+        // 3) Fallback to Tutorials: exact title
+        const tut = await Tutorial.findOne({ title: name }).sort({ order: 'asc' });
+        if (tut && tut.videoUrl) {
+            return res.status(200).json({ name: tut.title, videoUrl: tut.videoUrl, source: 'tutorial', tutorialId: tut._id });
+        }
+
+        // 4) Fallback to Tutorials: contains name (case-insensitive)
+        const tut2 = await Tutorial.findOne({ title: { $regex: new RegExp(name, 'i') } }).sort({ order: 'asc' });
+        if (tut2 && tut2.videoUrl) {
+            return res.status(200).json({ name: tut2.title, videoUrl: tut2.videoUrl, source: 'tutorial', tutorialId: tut2._id });
+        }
+
+        return res.status(404).json({ message: 'No example video found for exercise' });
+    } catch (error) {
+        console.error('Get Exercise Example Error:', error.message);
+        res.status(500).json({ message: 'Server Error' });
+    }
+}

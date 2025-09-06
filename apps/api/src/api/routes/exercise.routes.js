@@ -8,6 +8,7 @@ const {
     createExercise,
     updateExercise,
     deleteExercise,
+    getExerciseExample,
 } = require('../controllers/exercise.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
 const adminMiddleware = require('../middlewares/admin.middleware');
@@ -20,6 +21,13 @@ const adminMiddleware = require('../middlewares/admin.middleware');
  * @access  Private
  */
 router.get('/', authMiddleware, getAllExercises);
+
+/**
+ * @route   GET /api/v1/exercises/example?name=Push-up
+ * @desc    Get an instructional video URL for the given exercise name
+ * @access  Private
+ */
+router.get('/example', authMiddleware, getExerciseExample);
 
 /**
  * @route   GET /api/v1/exercises/:id
