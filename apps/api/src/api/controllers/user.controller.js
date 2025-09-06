@@ -88,18 +88,35 @@ const getUserStats = async (req, res) => {
         const userId = req.user.id;
         const user = req.user; // User object is already attached from auth middleware
 
-        // 1. Fetch all workouts for the user
-        const workouts = await Workout.find({ user: userId }).sort({ date: 'asc' });
+        // 1. Fetch all COMPLETED workouts for the user
+        const workouts = await Workout.find({ user: userId, status: 'completed' }).sort({ date: 'asc' });
+
+        // Pre-compute BMI (remains useful even without workouts)
+        let bmi = null;
+        if (req.user.height && req.user.weight && req.user.height > 0) {
+            const heightInMeters = req.user.height / 100;
+            bmi = parseFloat((req.user.weight / (heightInMeters * heightInMeters)).toFixed(2));
+        }
 
         if (!workouts || workouts.length === 0) {
+            // Return a consistent response shape to simplify the frontend
             return res.status(200).json({
-                message: "No workout data available to generate stats.",
+                summary: {
+                    caloriesWeek: 0,
+                    totalRepsWeek: 0,
+                    formAccuracy: 0,
+                    minutesTrained: 0,
+                    deltas: { calories: 0, reps: 0, accuracy: 0, minutes: 0 },
+                },
+                weeklyReps: Array(7).fill(0),
+                monthlyCalories: [0, 0, 0, 0],
+                accuracyHistory: [],
                 stats: {
                     totalWorkouts: 0,
                     totalReps: 0,
                     totalDuration: 0,
                     averageWorkoutsPerWeek: 0,
-                    bmi: null,
+                    bmi,
                 }
             });
         }
@@ -125,23 +142,104 @@ const getUserStats = async (req, res) => {
             averageWorkoutsPerWeek = 1;
         }
 
-        // 4. Calculate BMI
-        let bmi = null;
-        if (user.height && user.weight && user.height > 0) {
-            // Assuming height is in cm and weight is in kg. BMI formula: weight (kg) / [height (m)]^2
-            const heightInMeters = user.height / 100;
-            bmi = parseFloat((user.weight / (heightInMeters * heightInMeters)).toFixed(2));
+        // 4. BMI already computed above for consistency
+
+        // --- Enhanced dashboard summary structure ---
+        const now = new Date();
+        const dayMs = 24 * 60 * 60 * 1000;
+        const weekMs = 7 * dayMs;
+        const fourWeeksMs = 28 * dayMs;
+
+        const within = (d, ms) => (now - new Date(d)) <= ms;
+
+        // Weekly aggregates (last 7 days)
+        const lastWeek = workouts.filter(w => within(w.date || w.createdAt, weekMs));
+        const prevWeek = workouts.filter(w => {
+            const dt = now - (w.date || w.createdAt);
+            return dt > weekMs && dt <= 2 * weekMs;
+        });
+
+        const sumReps = (arr) => arr.reduce((acc, w) => acc + w.exercises.reduce((s, e) => s + (e.reps || 0) * (e.sets || 0), 0), 0);
+        const sumMinutes = (arr) => arr.reduce((acc, w) => acc + (w.duration || 0), 0);
+        const sumCalories = (arr) => arr.reduce((acc, w) => acc + (w.caloriesBurned || 0), 0);
+        const avgFormScore = (arr) => {
+            let total = 0, count = 0;
+            for (const w of arr) {
+                for (const e of (w.exercises || [])) {
+                    if (typeof e.formScore === 'number') {
+                        total += e.formScore; count += 1;
+                    }
+                }
+            }
+            return count ? Math.round(total / count) : 0;
+        };
+
+        const repsWeek = sumReps(lastWeek);
+        const minutesWeek = sumMinutes(lastWeek);
+        const caloriesWeek = sumCalories(lastWeek);
+        const formAccuracy4w = avgFormScore(workouts.filter(w => within(w.date || w.createdAt, fourWeeksMs)));
+
+        const repsPrev = sumReps(prevWeek) || 0;
+        const minutesPrev = sumMinutes(prevWeek) || 0;
+        const caloriesPrev = sumCalories(prevWeek) || 0;
+        const formPrev = avgFormScore(workouts.filter(w => {
+            const dt = now - (w.date || w.createdAt);
+            return dt > fourWeeksMs && dt <= 2 * fourWeeksMs;
+        })) || 0;
+
+        const pctDelta = (cur, prev) => {
+            if (!prev && !cur) return 0;
+            if (!prev) return 100;
+            return Math.round(((cur - prev) / Math.max(1, prev)) * 100);
+        };
+
+        // Weekly reps series Mon..Sun
+        const weeklyReps = Array(7).fill(0);
+        for (const w of lastWeek) {
+            const d = new Date(w.date || w.createdAt);
+            // Map to Mon..Sun (0..6) with Monday=0
+            let idx = d.getDay(); // 0=Sun..6=Sat
+            idx = (idx + 6) % 7; // shift: Mon=0
+            weeklyReps[idx] += w.exercises.reduce((s, e) => s + (e.reps || 0) * (e.sets || 0), 0);
         }
 
-        res.status(200).json({
+        // 4-week calories series (most recent week last)
+        const monthlyCalories = [0,0,0,0];
+        for (const w of workouts) {
+            const dt = now - (w.date || w.createdAt);
+            if (dt <= 4 * weekMs) {
+                const bucket = 3 - Math.floor(dt / weekMs); // 0..3 => oldest..newest
+                if (bucket >= 0 && bucket < 4) monthlyCalories[bucket] += (w.caloriesBurned || 0);
+            }
+        }
+
+        const response = {
+            summary: {
+                caloriesWeek,
+                totalRepsWeek: repsWeek,
+                formAccuracy: formAccuracy4w, // average across last 4 weeks
+                minutesTrained: minutesWeek,
+                deltas: {
+                    calories: pctDelta(caloriesWeek, caloriesPrev),
+                    reps: pctDelta(repsWeek, repsPrev),
+                    accuracy: pctDelta(formAccuracy4w, formPrev),
+                    minutes: pctDelta(minutesWeek, minutesPrev),
+                },
+            },
+            weeklyReps,
+            monthlyCalories,
+            accuracyHistory: [],
+            // Back-compat for callers expecting `stats`
             stats: {
                 totalWorkouts,
                 totalReps,
-                totalDuration, // in minutes
+                totalDuration,
                 averageWorkoutsPerWeek,
                 bmi,
-            }
-        });
+            },
+        };
+
+        res.status(200).json(response);
 
     } catch (error) {
         console.error('Get User Stats Error:', error.message);

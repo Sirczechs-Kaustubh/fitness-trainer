@@ -1,6 +1,7 @@
 // apps/api/src/api/controllers/workout.controller.js
 
 const Workout = require('../../models/Workout.model');
+const User = require('../../models/User.model');
 
 /**
  * @controller startWorkout
@@ -59,10 +60,40 @@ const endWorkout = async (req, res) => {
         const now = new Date();
         const duration = Math.round((now - workout.createdAt) / (1000 * 60));
 
+        // --- Estimate calories burned ---
+        // Basic MET estimates per exercise name (approximate)
+        const METS = {
+            'Squat': 5.0,
+            'Lunge': 5.0,
+            'Push-up': 8.0,
+            'Bicep Curl': 3.8,
+            'Shoulder Press': 3.8,
+            'Jumping Jack': 8.0,
+            'Tricep Dip': 6.0,
+            'Mountain Climber': 8.0,
+        };
+        // Calories formula: MET * 3.5 * weight(kg) / 200 * minutes
+        let userWeightKg = 70;
+        try {
+            const u = await User.findById(userId).select('weight');
+            if (u && typeof u.weight === 'number' && u.weight > 0) userWeightKg = u.weight;
+        } catch {}
+
+        const exs = Array.isArray(exercises) && exercises.length ? exercises : [];
+        const perExerciseMinutes = exs.length > 0 ? Math.max(1, duration) / exs.length : Math.max(1, duration);
+        let calories = 0;
+        for (const ex of exs) {
+            const name = ex?.name || 'Workout';
+            const met = METS[name] || 5.0;
+            calories += met * 3.5 * userWeightKg / 200 * perExerciseMinutes;
+        }
+        calories = Math.round(calories);
+
         // Update the workout document
         workout.status = 'completed';
         workout.exercises = exercises;
         workout.duration = duration;
+        workout.caloriesBurned = calories;
         workout.endTime = now; // <-- THE FIX IS HERE
 
         await workout.save();

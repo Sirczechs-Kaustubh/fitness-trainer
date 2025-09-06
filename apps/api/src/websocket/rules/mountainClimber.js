@@ -7,6 +7,7 @@ class MountainClimberProcessor {
     this.activeLeg = 'none'; // 'left', 'right', or 'none'
     this.repCount = 0;
     this.feedback = 'Get into a plank position to start.';
+    this.formScore = 0;
   }
 
   /**
@@ -63,10 +64,22 @@ class MountainClimberProcessor {
         // Both legs are back, reset state for next rep
         this.activeLeg = 'none';
     }
-    
+    // --- 4. Score: plank straightness + knee drive
+    const plankErr = Math.min(1, ((Math.abs(180 - leftBodyAngle) + Math.abs(180 - rightBodyAngle)) / 2) / 40);
+    // Knee drive: greater forward indicates better (use y distance relative to hip->ankle)
+    const leftRange = Math.max(0.001, Math.abs(leftAnkle.y - leftHip.y));
+    const rightRange = Math.max(0.001, Math.abs(rightAnkle.y - rightHip.y));
+    const leftDrive = Math.min(1, Math.max(0, (leftKnee.y - leftHip.y) / leftRange));
+    const rightDrive = Math.min(1, Math.max(0, (rightKnee.y - rightHip.y) / rightRange));
+    // Note: with camera facing user, y increases downward; forward knee usually increases y.
+    const driveScore = (leftDrive + rightDrive) / 2;
+    const inst = 100 * (1 - 0.5 * plankErr) * (0.5 + 0.5 * driveScore); // keep some score even when not driving
+    this.formScore = Math.round(0.8 * this.formScore + 0.2 * Math.max(0, Math.min(100, inst)));
+
     return {
       repCount: this.repCount,
       feedback: this.feedback,
+      score: this.formScore,
     };
   }
 }

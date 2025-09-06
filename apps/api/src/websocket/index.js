@@ -80,6 +80,7 @@ const initializeSocket = (httpServer) => {
           repCount: result.repCount,
           feedback: result.feedback,
           stage: result.stage,
+          score: typeof result.score === 'number' ? Math.max(0, Math.min(100, Math.round(result.score))) : undefined,
         });
 
         const lastRepCount = session.repHistory.length > 0 ? session.repHistory[session.repHistory.length - 1] : 0;

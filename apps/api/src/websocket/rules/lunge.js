@@ -8,6 +8,7 @@ class LungeProcessor {
     this.repCount = 0;
     this.feedback = 'Start your lunge.';
     this.leadingLeg = null; // To track which leg is forward ('left' or 'right')
+    this.formScore = 0;
   }
 
   /**
@@ -93,10 +94,19 @@ class LungeProcessor {
       }
     }
 
+    // --- 8. Score: front/back knee near 90°, torso upright ---
+    const kneeTarget = this.stage === 'down' ? 90 : 170;
+    const kneeErrFront = Math.min(1, Math.abs(frontKneeAngle - kneeTarget) / (this.stage === 'down' ? 60 : 30));
+    const kneeErrBack = Math.min(1, Math.abs(backKneeAngle - kneeTarget) / (this.stage === 'down' ? 60 : 30));
+    const torsoBonus = isTorsoUpright ? 1 : 0.75;
+    const inst = 100 * torsoBonus * (1 - (kneeErrFront + kneeErrBack) / 2);
+    this.formScore = Math.round(0.8 * this.formScore + 0.2 * Math.max(0, Math.min(100, inst)));
+
     return {
       repCount: this.repCount,
       feedback: this.feedback,
       stage: this.stage,
+      score: this.formScore,
     };
   }
 }

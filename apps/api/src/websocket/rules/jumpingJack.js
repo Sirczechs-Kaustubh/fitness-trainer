@@ -5,6 +5,7 @@ class JumpingJackProcessor {
     this.stage = 'in'; // 'in' (start/end) or 'out' (peak)
     this.repCount = 0;
     this.feedback = 'Start with your feet together and arms by your side.';
+    this.formScore = 0;
   }
 
   /**
@@ -68,10 +69,26 @@ class JumpingJackProcessor {
         }
     }
 
+    // --- 5. Score: coordination of arms and legs ---
+    // Normalize arm height vs shoulder->hip distance
+    const torsoHeight = Math.max(0.001, Math.abs((leftHip.y + rightHip.y)/2 - (leftShoulder.y + rightShoulder.y)/2));
+    const armRaiseL = Math.max(0, ((leftShoulder.y - leftWrist.y) / torsoHeight)); // 1+ when well above shoulder
+    const armRaiseR = Math.max(0, ((rightShoulder.y - rightWrist.y) / torsoHeight));
+    const armUpScore = Math.min(1, (armRaiseL + armRaiseR) / 2);
+    // Normalize leg spread vs shoulder width
+    const legSpreadScore = Math.min(1, ankleDistance / Math.max(0.001, shoulderWidth * 1.5));
+    // When stage is 'out' target is armsUp + legsOut; when 'in' target is armsDown + legsIn
+    const armDownScore = Math.min(1, Math.max(0, ((leftWrist.y - leftHip.y) + (rightWrist.y - rightHip.y)) / (2 * torsoHeight)));
+    const legsInScore = Math.min(1, Math.max(0, (shoulderWidth * 0.8 - ankleDistance) / (shoulderWidth * 0.8)));
+    const targetScore = this.stage === 'out' ? (0.6 * armUpScore + 0.4 * legSpreadScore)
+                                             : (0.6 * armDownScore + 0.4 * legsInScore);
+    this.formScore = Math.round(0.8 * this.formScore + 0.2 * (targetScore * 100));
+
     return {
       repCount: this.repCount,
       feedback: this.feedback,
       stage: this.stage,
+      score: this.formScore,
     };
   }
 }

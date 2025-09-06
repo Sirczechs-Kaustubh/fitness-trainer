@@ -8,6 +8,7 @@ class BicepCurlProcessor {
     this.repCount = 0;
     this.feedback = 'Start with your arms extended.';
     this.initialShoulderY = null; // To detect body swinging
+    this.formScore = 0; // 0-100 smoothed
   }
 
   /**
@@ -74,10 +75,25 @@ class BicepCurlProcessor {
         }
     }
 
+    // --- 6. Compute a simple per-frame form score ---
+    // Target angles: up ~40°, down ~170°. Penalize body swing.
+    const targetUp = 40, targetDown = 170;
+    const target = this.stage === 'up' ? targetUp : targetDown;
+    const errL = Math.min(1, Math.abs((this.stage === 'up' ? leftElbowAngle - targetUp : leftElbowAngle - targetDown)) / (this.stage === 'up' ? 60 : 30));
+    const errR = Math.min(1, Math.abs((this.stage === 'up' ? rightElbowAngle - targetUp : rightElbowAngle - targetDown)) / (this.stage === 'up' ? 60 : 30));
+    let inst = 100 * (1 - (errL + errR) / 2);
+    if (this.initialShoulderY && this.stage === 'up') {
+      const currentShoulderY = (leftShoulder.y + rightShoulder.y) / 2;
+      if (Math.abs(currentShoulderY - this.initialShoulderY) > 0.05) inst *= 0.7; // penalize swing
+    }
+    // Smooth using EMA
+    this.formScore = Math.round(0.8 * this.formScore + 0.2 * Math.max(0, Math.min(100, inst)));
+
     return {
       repCount: this.repCount,
       feedback: this.feedback,
       stage: this.stage,
+      score: this.formScore,
     };
   }
 }

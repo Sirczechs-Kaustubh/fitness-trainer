@@ -7,6 +7,7 @@ class ShoulderPressProcessor {
     this.stage = 'down'; // 'down' (start) or 'up' (extended)
     this.repCount = 0;
     this.feedback = 'Start with weights at shoulder level.';
+    this.formScore = 0;
   }
 
   /**
@@ -63,10 +64,20 @@ class ShoulderPressProcessor {
         this.feedback = 'Lower until your elbows are below your shoulders.';
     }
     
+    // --- 6. Score: near full extension up, controlled down below shoulders ---
+    const upTarget = 175, downTarget = 90;
+    const elbowTarget = this.stage === 'up' ? upTarget : downTarget;
+    const shoulderTarget = this.stage === 'up' ? 170 : 90;
+    const eErr = Math.min(1, ((Math.abs(leftElbowAngle - elbowTarget) + Math.abs(rightElbowAngle - elbowTarget)) / 2) / (this.stage === 'up' ? 25 : 45));
+    const sErr = Math.min(1, ((Math.abs(leftShoulderAngle - shoulderTarget) + Math.abs(rightShoulderAngle - shoulderTarget)) / 2) / (this.stage === 'up' ? 25 : 45));
+    const inst = 100 * (1 - (0.7 * eErr + 0.3 * sErr));
+    this.formScore = Math.round(0.8 * this.formScore + 0.2 * Math.max(0, Math.min(100, inst)));
+
     return {
       repCount: this.repCount,
       feedback: this.feedback,
       stage: this.stage,
+      score: this.formScore,
     };
   }
 }

@@ -7,6 +7,7 @@ class TricepDipProcessor {
     this.stage = 'up'; // 'up' (extended) or 'down' (bent)
     this.repCount = 0;
     this.feedback = 'Start with your arms fully extended.';
+    this.formScore = 0;
   }
 
   /**
@@ -53,10 +54,17 @@ class TricepDipProcessor {
         this.feedback = 'Lower your body until your elbows hit 90 degrees.';
     }
 
+    // --- 6. Score: elbow angle control ---
+    const target = this.stage === 'down' ? 90 : 170;
+    const eErr = Math.min(1, ((Math.abs(leftElbowAngle - target) + Math.abs(rightElbowAngle - target)) / 2) / (this.stage === 'down' ? 45 : 30));
+    const inst = 100 * (1 - eErr);
+    this.formScore = Math.round(0.8 * this.formScore + 0.2 * Math.max(0, Math.min(100, inst)));
+
     return {
       repCount: this.repCount,
       feedback: this.feedback,
       stage: this.stage,
+      score: this.formScore,
     };
   }
 }

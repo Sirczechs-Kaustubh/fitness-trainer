@@ -7,6 +7,7 @@ class PushupProcessor {
     this.stage = 'up'; // Can be 'up' or 'down'. 'Up' is the starting plank position.
     this.repCount = 0;
     this.feedback = 'Get into a plank position to start.';
+    this.formScore = 0;
   }
 
   /**
@@ -64,10 +65,19 @@ class PushupProcessor {
       }
     }
     
+    // --- 5. Score: depth + body alignment ---
+    const elbowTarget = this.stage === 'down' ? 90 : 170;
+    const eErr = Math.min(1, ((Math.abs(leftElbowAngle - elbowTarget) + Math.abs(rightElbowAngle - elbowTarget)) / 2) / (this.stage === 'down' ? 60 : 30));
+    // For body angle, 180 is perfect straight; compare deviation
+    const bodyErr = Math.min(1, ((Math.abs(180 - leftBodyAngle) + Math.abs(180 - rightBodyAngle)) / 2) / 40);
+    const inst = 100 * (1 - (0.6 * eErr + 0.4 * bodyErr));
+    this.formScore = Math.round(0.8 * this.formScore + 0.2 * Math.max(0, Math.min(100, inst)));
+
     return {
       repCount: this.repCount,
       feedback: this.feedback,
       stage: this.stage,
+      score: this.formScore,
     };
   }
 }

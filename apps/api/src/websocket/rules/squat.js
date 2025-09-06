@@ -7,6 +7,7 @@ class SquatProcessor {
     this.stage = 'up'; // Can be 'up' or 'down'
     this.repCount = 0;
     this.feedback = 'Start your squat.';
+    this.formScore = 0;
   }
 
   /**
@@ -66,10 +67,20 @@ class SquatProcessor {
         this.feedback = 'Go lower!';
     }
 
+    // --- 5. Score: depth + back posture ---
+    // Down target: knee ~90°, up target: knee ~170°; back angle > 100° preferred.
+    const targetKnee = this.stage === 'down' ? 90 : 170;
+    const kneeErrL = Math.min(1, Math.abs(leftKneeAngle - targetKnee) / (this.stage === 'down' ? 60 : 30));
+    const kneeErrR = Math.min(1, Math.abs(rightKneeAngle - targetKnee) / (this.stage === 'down' ? 60 : 30));
+    const backOk = (leftHipAngle + rightHipAngle) / 2 > 100 ? 1 : 0.7; // slight penalty if leaning too far
+    const inst = 100 * backOk * (1 - (kneeErrL + kneeErrR) / 2);
+    this.formScore = Math.round(0.8 * this.formScore + 0.2 * Math.max(0, Math.min(100, inst)));
+
     return {
       repCount: this.repCount,
       feedback: this.feedback,
       stage: this.stage,
+      score: this.formScore,
     };
   }
 }
