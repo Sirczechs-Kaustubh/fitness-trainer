@@ -1,0 +1,1324 @@
+[{
+  "_id": {
+    "$oid": "68b35414bfb6aa283ad3e56b"
+  },
+  "user": {
+    "$oid": "68b33d85568d0f9ac989b4af"
+  },
+  "status": "in-progress",
+  "plannedExercises": [],
+  "exercises": [],
+  "date": {
+    "$date": "2025-08-30T19:42:12.976Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-08-30T19:42:12.978Z"
+  },
+  "updatedAt": {
+    "$date": "2025-08-30T19:42:12.978Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68b35780bfb6aa283ad3e582"
+  },
+  "user": {
+    "$oid": "68b34845b19523dc228b4db5"
+  },
+  "status": "in-progress",
+  "plannedExercises": [],
+  "exercises": [],
+  "date": {
+    "$date": "2025-08-30T19:56:48.255Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-08-30T19:56:48.256Z"
+  },
+  "updatedAt": {
+    "$date": "2025-08-30T19:56:48.256Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68b35782bfb6aa283ad3e585"
+  },
+  "user": {
+    "$oid": "68b34845b19523dc228b4db5"
+  },
+  "status": "in-progress",
+  "plannedExercises": [],
+  "exercises": [],
+  "date": {
+    "$date": "2025-08-30T19:56:50.052Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-08-30T19:56:50.053Z"
+  },
+  "updatedAt": {
+    "$date": "2025-08-30T19:56:50.053Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68b357f8bfb6aa283ad3e58c"
+  },
+  "user": {
+    "$oid": "68b34845b19523dc228b4db5"
+  },
+  "status": "completed",
+  "plannedExercises": [],
+  "date": {
+    "$date": "2025-08-30T19:58:48.874Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-08-30T19:58:48.876Z"
+  },
+  "updatedAt": {
+    "$date": "2025-08-30T19:59:13.003Z"
+  },
+  "__v": 0,
+  "endTime": {
+    "$date": "2025-08-30T19:59:13.002Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68b5a451b2c8c387eeadbc4d"
+  },
+  "user": {
+    "$oid": "68b34845b19523dc228b4db5"
+  },
+  "status": "completed",
+  "plannedExercises": [],
+  "date": {
+    "$date": "2025-09-01T13:49:05.178Z"
+  },
+  "duration": 1,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-01T13:49:05.192Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-01T13:49:40.804Z"
+  },
+  "__v": 0,
+  "endTime": {
+    "$date": "2025-09-01T13:49:40.798Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68b9f099e6f30cef9a2fa538"
+  },
+  "user": {
+    "$oid": "68b34845b19523dc228b4db5"
+  },
+  "status": "completed",
+  "plannedExercises": [],
+  "date": {
+    "$date": "2025-09-04T20:03:37.153Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-04T20:03:37.161Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-04T20:03:59.421Z"
+  },
+  "__v": 0,
+  "endTime": {
+    "$date": "2025-09-04T20:03:59.419Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68b9f1a5e6f30cef9a2fa562"
+  },
+  "user": {
+    "$oid": "68b34845b19523dc228b4db5"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Push-Up"
+  ],
+  "exercises": [
+    {
+      "name": "Push-Up",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-04T20:08:05.202Z"
+  },
+  "duration": 1,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-04T20:08:05.204Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-04T20:08:37.200Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-04T20:08:37.196Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68b9f1f7e6f30cef9a2fa57c"
+  },
+  "user": {
+    "$oid": "68b34845b19523dc228b4db5"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Squat"
+  ],
+  "exercises": [
+    {
+      "name": "Squat",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-04T20:09:27.133Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-04T20:09:27.134Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-04T20:09:43.653Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-04T20:09:43.650Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68b9f21be6f30cef9a2fa590"
+  },
+  "user": {
+    "$oid": "68b34845b19523dc228b4db5"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Lunge"
+  ],
+  "exercises": [
+    {
+      "name": "Lunge",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-04T20:10:03.128Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-04T20:10:03.129Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-04T20:10:26.015Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-04T20:10:26.014Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68ba05d702b9edf57c6e07f5"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Squat"
+  ],
+  "exercises": [
+    {
+      "name": "Squat",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-04T21:34:15.314Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-04T21:34:15.321Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-04T21:34:20.721Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-04T21:34:20.714Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68ba074e02b9edf57c6e0807"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Squat"
+  ],
+  "exercises": [
+    {
+      "name": "Squat",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-04T21:40:30.167Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-04T21:40:30.168Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-04T21:40:41.680Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-04T21:40:41.678Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68bad05e02b9edf57c6e0835"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Squat"
+  ],
+  "exercises": [
+    {
+      "name": "Squat",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-05T11:58:22.294Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T11:58:22.300Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T11:58:39.944Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-05T11:58:39.941Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68bad07302b9edf57c6e083f"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "in-progress",
+  "plannedExercises": [
+    "Squat"
+  ],
+  "exercises": [],
+  "date": {
+    "$date": "2025-09-05T11:58:43.189Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T11:58:43.190Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T11:58:43.190Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68bad07c02b9edf57c6e0846"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Squat"
+  ],
+  "exercises": [
+    {
+      "name": "Squat",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-05T11:58:52.493Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T11:58:52.494Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T11:58:57.014Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-05T11:58:57.012Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68bad12b02b9edf57c6e084c"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "in-progress",
+  "plannedExercises": [
+    "Squat"
+  ],
+  "exercises": [],
+  "date": {
+    "$date": "2025-09-05T12:01:47.952Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T12:01:47.955Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T12:01:47.955Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68bad1795d3a786852701813"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Squat"
+  ],
+  "exercises": [
+    {
+      "name": "Squat",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-05T12:03:05.410Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T12:03:05.425Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T12:03:13.955Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-05T12:03:13.950Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68bad3825d3a786852701839"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Squat"
+  ],
+  "exercises": [
+    {
+      "name": "Squat",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-05T12:11:46.324Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T12:11:46.325Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T12:11:49.891Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-05T12:11:49.890Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68badaa25d3a786852701843"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Squat"
+  ],
+  "exercises": [
+    {
+      "name": "Squat",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-05T12:42:10.812Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T12:42:10.814Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T12:42:32.649Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-05T12:42:32.646Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68bae71c5d3a786852701867"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Push-Up"
+  ],
+  "exercises": [
+    {
+      "name": "Push-Up",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-05T13:35:24.795Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T13:35:24.796Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T13:35:51.205Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-05T13:35:51.202Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68baec1c5d3a78685270189f"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Bicep Curl"
+  ],
+  "exercises": [
+    {
+      "name": "Bicep Curl",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-05T13:56:44.447Z"
+  },
+  "duration": 1,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T13:56:44.449Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T13:57:22.270Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-05T13:57:22.267Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68baecdf5d3a7868527018a8"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "in-progress",
+  "plannedExercises": [
+    "Bicep Curl"
+  ],
+  "exercises": [],
+  "date": {
+    "$date": "2025-09-05T13:59:59.110Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T13:59:59.112Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T13:59:59.112Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68baece65d3a7868527018ac"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Bicep Curl"
+  ],
+  "exercises": [
+    {
+      "name": "Bicep Curl",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-05T14:00:06.948Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T14:00:06.949Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T14:00:34.150Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-05T14:00:34.145Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68baed115d3a7868527018b7"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "in-progress",
+  "plannedExercises": [
+    "Bicep Curl"
+  ],
+  "exercises": [],
+  "date": {
+    "$date": "2025-09-05T14:00:49.161Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T14:00:49.162Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T14:00:49.162Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68baed185d3a7868527018bb"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Bicep Curl"
+  ],
+  "exercises": [
+    {
+      "name": "Bicep Curl",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-05T14:00:56.743Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T14:00:56.744Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T14:01:26.643Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-05T14:01:26.641Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68baee925d3a7868527018c8"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "in-progress",
+  "plannedExercises": [
+    "Squat"
+  ],
+  "exercises": [],
+  "date": {
+    "$date": "2025-09-05T14:07:14.407Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T14:07:14.408Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T14:07:14.408Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68baeeb85d3a7868527018cc"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Squat"
+  ],
+  "exercises": [
+    {
+      "name": "Squat",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-05T14:07:52.499Z"
+  },
+  "duration": 3,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T14:07:52.501Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T14:10:44.726Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-05T14:10:44.722Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68baf0215d3a7868527018d7"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "in-progress",
+  "plannedExercises": [
+    "Squat"
+  ],
+  "exercises": [],
+  "date": {
+    "$date": "2025-09-05T14:13:53.035Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T14:13:53.035Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T14:13:53.035Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68baf02a5d3a7868527018db"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Squat"
+  ],
+  "exercises": [
+    {
+      "name": "Squat",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-05T14:14:02.837Z"
+  },
+  "duration": 1,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T14:14:02.838Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T14:15:32.165Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-05T14:15:32.161Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68baf2465d3a7868527018e8"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Bicep Curl"
+  ],
+  "exercises": [
+    {
+      "name": "Bicep Curl",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-05T14:23:02.549Z"
+  },
+  "duration": 1,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T14:23:02.550Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T14:23:51.508Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-05T14:23:51.505Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68baf3e15d3a7868527018f5"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Squat"
+  ],
+  "exercises": [
+    {
+      "name": "Squat",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-05T14:29:53.484Z"
+  },
+  "duration": 2,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T14:29:53.485Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T14:31:45.847Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-05T14:31:45.843Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68baf9f25d3a786852701924"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Squat"
+  ],
+  "exercises": [
+    {
+      "name": "Squat",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-05T14:55:46.867Z"
+  },
+  "duration": 3,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T14:55:46.869Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T14:58:18.212Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-05T14:58:18.203Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68bafdfd5d3a786852701933"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Squat"
+  ],
+  "exercises": [
+    {
+      "name": "Squat",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-05T15:13:01.133Z"
+  },
+  "duration": 1,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T15:13:01.134Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T15:14:02.751Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-05T15:14:02.747Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68bafe445d3a78685270193a"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Bicep Curl"
+  ],
+  "exercises": [
+    {
+      "name": "Bicep Curl",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-05T15:14:12.617Z"
+  },
+  "duration": 1,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T15:14:12.617Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T15:14:50.803Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-05T15:14:50.802Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68bafeda5d3a786852701941"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Bicep Curl"
+  ],
+  "exercises": [
+    {
+      "name": "Bicep Curl",
+      "reps": 23,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-05T15:16:42.917Z"
+  },
+  "duration": 5,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T15:16:42.918Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T15:21:24.248Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-05T15:21:24.244Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68bb1de30d7c6bda25f7991c"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "in-progress",
+  "plannedExercises": [
+    "Bicep Curl"
+  ],
+  "exercises": [],
+  "date": {
+    "$date": "2025-09-05T17:29:07.829Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T17:29:07.838Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T17:29:07.838Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68bb1e140d7c6bda25f79920"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Bicep Curl"
+  ],
+  "exercises": [
+    {
+      "name": "Bicep Curl",
+      "reps": 5,
+      "sets": 1,
+      "formScore": 0
+    }
+  ],
+  "date": {
+    "$date": "2025-09-05T17:29:56.849Z"
+  },
+  "duration": 2,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T17:29:56.856Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T17:32:18.563Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-05T17:32:18.557Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68bb3b3726b191290d9d6d50"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Squat"
+  ],
+  "exercises": [
+    {
+      "name": "Squat",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 74
+    }
+  ],
+  "date": {
+    "$date": "2025-09-05T19:34:15.939Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T19:34:15.948Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T19:34:33.496Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-05T19:34:33.488Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68bb3b4f26b191290d9d6d57"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Bicep Curl"
+  ],
+  "exercises": [
+    {
+      "name": "Bicep Curl",
+      "reps": 12,
+      "sets": 1,
+      "formScore": 10
+    }
+  ],
+  "date": {
+    "$date": "2025-09-05T19:34:39.534Z"
+  },
+  "duration": 1,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-05T19:34:39.536Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-05T19:35:58.158Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-05T19:35:58.156Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68bc6fbce68f75e71ed4ef22"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Bicep Curl"
+  ],
+  "exercises": [
+    {
+      "name": "Bicep Curl",
+      "reps": 18,
+      "sets": 1,
+      "formScore": 82
+    }
+  ],
+  "date": {
+    "$date": "2025-09-06T17:30:36.908Z"
+  },
+  "duration": 2,
+  "caloriesBurned": 3,
+  "createdAt": {
+    "$date": "2025-09-06T17:30:36.917Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-06T17:33:05.423Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-06T17:33:05.415Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68bc7d7d058bd9d50ad927a5"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "in-progress",
+  "plannedExercises": [
+    "Jumping Jack"
+  ],
+  "exercises": [],
+  "date": {
+    "$date": "2025-09-06T18:29:17.556Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 0,
+  "createdAt": {
+    "$date": "2025-09-06T18:29:17.565Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-06T18:29:17.565Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68bc7d91058bd9d50ad927c5"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Squat"
+  ],
+  "exercises": [
+    {
+      "name": "Squat",
+      "reps": 0,
+      "sets": 1,
+      "formScore": 72
+    }
+  ],
+  "date": {
+    "$date": "2025-09-06T18:29:37.746Z"
+  },
+  "duration": 0,
+  "caloriesBurned": 7,
+  "createdAt": {
+    "$date": "2025-09-06T18:29:37.750Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-06T18:30:00.185Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-06T18:30:00.164Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68bc7dad058bd9d50ad927cf"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "status": "completed",
+  "plannedExercises": [
+    "Bicep Curl"
+  ],
+  "exercises": [
+    {
+      "name": "Bicep Curl",
+      "reps": 22,
+      "sets": 1,
+      "formScore": 47
+    }
+  ],
+  "date": {
+    "$date": "2025-09-06T18:30:05.621Z"
+  },
+  "duration": 1,
+  "caloriesBurned": 5,
+  "createdAt": {
+    "$date": "2025-09-06T18:30:05.622Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-06T18:30:51.086Z"
+  },
+  "__v": 1,
+  "endTime": {
+    "$date": "2025-09-06T18:30:51.082Z"
+  }
+}]

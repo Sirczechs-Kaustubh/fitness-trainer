@@ -1,0 +1,98 @@
+[{
+  "_id": {
+    "$oid": "68b2124156d83486c3fa67e5"
+  },
+  "name": "Static Admin User",
+  "email": "admin@example.com",
+  "password": "$2a$10$tP2ZVkaJ60b/eN6cV0hUGOuTnsbq.X2TIItaE8awvKVDOj8mIvnnm",
+  "role": "admin",
+  "fitnessGoals": [],
+  "createdAt": {
+    "$date": "2025-08-29T20:49:05.817Z"
+  },
+  "updatedAt": {
+    "$date": "2025-08-29T20:49:05.817Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68b2125756d83486c3fa67e9"
+  },
+  "name": "Test User 1756500567",
+  "email": "user_1756500567@example.com",
+  "password": "$2a$10$MY17C0RsnVizsaRmuaSxOOs9DGDkyJW2fxrVvHXGFRLIZhsce5Fji",
+  "role": "user",
+  "fitnessGoals": [],
+  "createdAt": {
+    "$date": "2025-08-29T20:49:27.973Z"
+  },
+  "updatedAt": {
+    "$date": "2025-08-29T20:49:28.709Z"
+  },
+  "__v": 0,
+  "age": 30,
+  "height": 180,
+  "weight": 75
+},
+{
+  "_id": {
+    "$oid": "68b33d85568d0f9ac989b4af"
+  },
+  "name": "Kau",
+  "email": "kau@gmail.com",
+  "password": "$2a$10$MotwiV1BXjJmna2/RyYwReOE.NX0h5ZlgAQmQ8nmRGqTjq0uMzplG",
+  "role": "user",
+  "fitnessGoals": [],
+  "createdAt": {
+    "$date": "2025-08-30T18:05:57.318Z"
+  },
+  "updatedAt": {
+    "$date": "2025-08-30T18:05:57.318Z"
+  },
+  "__v": 0
+},
+{
+  "_id": {
+    "$oid": "68b34845b19523dc228b4db5"
+  },
+  "name": "Kee",
+  "email": "kee@k.com",
+  "password": "$2a$10$TLY9/B8YcCsLJi/lRea0ueRiGMv8hBMLs1EISBkPJHN0Iqv7.rUe6",
+  "role": "user",
+  "fitnessGoals": [
+    "get some bitches this year"
+  ],
+  "createdAt": {
+    "$date": "2025-08-30T18:51:49.756Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-04T20:55:23.603Z"
+  },
+  "__v": 2,
+  "age": 25,
+  "height": 10,
+  "weight": 69
+},
+{
+  "_id": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "name": "Kau",
+  "email": "k@k.com",
+  "password": "$2a$10$I5zBlWaUQQHSC.vM3KFM3.RTMcQkZck7Z2ipa/dNkHfGmRy75KEoW",
+  "role": "user",
+  "fitnessGoals": [
+    "Lose 5 kgs"
+  ],
+  "createdAt": {
+    "$date": "2025-09-04T21:00:44.581Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-06T18:05:23.259Z"
+  },
+  "__v": 2,
+  "age": 25,
+  "height": 152,
+  "weight": 75
+}]
