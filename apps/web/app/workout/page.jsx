@@ -8,6 +8,7 @@ import { getSocket, disconnectSocket } from "@/lib/socket";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
 import api from "@/lib/apiClient";
+// MediaPipe Tasks Vision will be dynamically imported when starting session
 
 const fade = (d = 0) => ({
   initial: { opacity: 0, y: 10 },
@@ -15,12 +16,20 @@ const fade = (d = 0) => ({
 });
 
 const EXERCISES = [
-  "Squat", "Push-Up", "Lunge", "Plank", "Bicep Curl", "Shoulder Press", "Deadlift", "Mountain Climbers"
+  "Squat",
+  "Lunge",
+  "Push-up",
+  "Bicep Curl",
+  "Shoulder Press",
+  "Jumping Jack",
+  "Tricep Dip",
+  "Mountain Climber",
 ];
 
 export default function WorkoutPage() {
   const { user, ready } = useAuth({ requireAuth: false });
   const [running, setRunning] = useState(false);
+  const runningRef = useRef(false);
   const [muted, setMuted] = useState(true);
   const [exercise, setExercise] = useState(EXERCISES[0]);
   const [reps, setReps] = useState(0);
@@ -29,23 +38,64 @@ export default function WorkoutPage() {
   const [error, setError] = useState("");
   const [seconds, setSeconds] = useState(0);
   const [workoutId, setWorkoutId] = useState(null);
+  const [mirror, setMirror] = useState(true);
+  const [calib, setCalib] = useState(null);
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const rafRef = useRef(null);
+  const vfcRef = useRef(null); // requestVideoFrameCallback id
   const streamRef = useRef(null);
   const startedAtRef = useRef(null);
   const lastPoseRef = useRef(null); // when model added
+  const landmarkerRef = useRef(null);
+  const visionRef = useRef(null);
+  const creatingLandmarkerRef = useRef(null); // guard against double-creation in Strict Mode
+  const lastVideoTimeRef = useRef(-1);
+  const [loadingModel, setLoadingModel] = useState(false);
+  const [debug] = useState(process.env.NODE_ENV !== "production");
+  const [fps, setFps] = useState(0);
+  const framesSinceRef = useRef(0);
+  const lastFpsAtRef = useRef(0);
+  const firstDetectLoggedRef = useRef(false);
+  const firstTickLoggedRef = useRef(false);
 
   // timer
   useEffect(() => {
+    runningRef.current = running;
     if (!running) return;
     const id = setInterval(() => setSeconds((s) => s + 1), 1000);
     return () => clearInterval(id);
   }, [running]);
 
+  // Load saved calibration on mount
+  useEffect(() => {
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem("calibration") : null;
+      if (raw) {
+        const c = JSON.parse(raw);
+        setCalib(c);
+        if (typeof c.mirror === "boolean") setMirror(c.mirror);
+      }
+    } catch {}
+  }, []);
+
   // cleanup on unmount
   useEffect(() => () => stopEverything(), []);
+
+  // Optional: warm up the pose model to reduce start delay
+  useEffect(() => {
+    (async () => {
+      try {
+        setLoadingModel(true);
+        await ensurePoseLandmarker();
+      } catch (e) {
+        // ignore prefetch errors; will retry on start
+      } finally {
+        setLoadingModel(false);
+      }
+    })();
+  }, []);
 
   if (!ready) return null;
 
@@ -64,40 +114,97 @@ export default function WorkoutPage() {
       }
       setWorkoutId(newWorkoutId);
 
-      // 2) Get camera access with the correct constraints
-      const stream = await navigator.mediaDevices.getUserMedia({
+      // 2) Get camera access with constraints from calibration if available
+      const c = calib || {};
+      const constraints = {
         video: {
+          deviceId: c.deviceId ? { ideal: c.deviceId } : undefined,
           facingMode: "user",
-          width: { ideal: 1280 },
-          height: { ideal: 720 },
-          frameRate: { ideal: 30, max: 60 }
+          width: c.width ? { ideal: c.width } : { ideal: 1280 },
+          height: c.height ? { ideal: c.height } : { ideal: 720 },
+          frameRate: { ideal: 30, max: 60 },
         },
-        audio: false
-      });
+        audio: false,
+      };
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch (err) {
+        // Fallback to default if constraints fail
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false,
+        });
+      }
       streamRef.current = stream;
       const video = videoRef.current;
       video.srcObject = stream;
+
+      // Wait until we have data to render
+      if (video.readyState >= 2) {
+        // HAVE_CURRENT_DATA
+      } else {
+        await new Promise((resolve) => {
+          const onCanPlay = () => {
+            video.removeEventListener("canplay", onCanPlay);
+            resolve();
+          };
+          video.addEventListener("canplay", onCanPlay, { once: true });
+        });
+      }
+
       await video.play();
 
-      // 3) Size canvas to video
+      // 3) Initialize canvas size to match displayed size
       const canvas = canvasRef.current;
-      canvas.width = video.videoWidth || 1280;
-      canvas.height = video.videoHeight || 720;
+      const cw = canvas.clientWidth || 1280;
+      const ch = canvas.clientHeight || Math.round((cw * 9) / 16);
+      canvas.width = cw;
+      canvas.height = ch;
+      if (debug) {
+        console.info("camera ready", {
+          hasVFC: typeof video.requestVideoFrameCallback === "function",
+          videoWidth: video.videoWidth,
+          videoHeight: video.videoHeight,
+          canvasWidth: canvas.width,
+          canvasHeight: canvas.height,
+        });
+      }
 
       // 4) Socket setup
       const socket = getSocket();
-      socket.off("rep:update");
-      socket.off("score:update");
       socket.off("feedback:new");
-      socket.on("rep:update", (n) => setReps(n));
-      socket.on("score:update", (s) => setScore(s));
-      socket.on("feedback:new", (msg) => setFeedback(msg));
+      socket.off("session:ready");
+      socket.off("error");
+      socket.on("feedback:new", (payload) => {
+        if (debug) console.debug("socket feedback:new", payload);
+        if (typeof payload?.repCount === "number") setReps(payload.repCount);
+        if (payload?.feedback) setFeedback(payload.feedback);
+        if (typeof payload?.score === "number") setScore(payload.score);
+      });
+      socket.on("session:ready", () => {
+        if (debug) console.debug("socket session:ready");
+        setFeedback("Session ready. Begin your movement.");
+      });
+      socket.on("error", (e) => {
+        console.error("Socket error", e);
+        setError(e?.message || "Real-time analysis error");
+      });
 
-      // 5) Start draw loop
+      // Signal backend which exercise we are doing
+      if (debug) console.debug("socket emit session:start", { exercise, userId: user?._id });
+      socket.emit("session:start", { exercise, userId: user?._id });
+
+      // 5) Load MediaPipe Pose landmarker if not already
+      await ensurePoseLandmarker();
+      if (debug) console.info("pose landmarker ready");
+
+      // 6) Start draw loop (prefer requestVideoFrameCallback when available)
       startedAtRef.current = Date.now();
       setSeconds(0);
       setRunning(true);
-      drawLoop();
+      startDrawing();
+      if (debug) console.info("drawing loop started");
     } catch (e) {
       console.error(e);
       setError(e.message || "Could not start session. Check camera permissions.");
@@ -139,6 +246,16 @@ export default function WorkoutPage() {
   function stopEverything() {
     setRunning(false);
     if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    if (vfcRef.current && videoRef.current && videoRef.current.cancelVideoFrameCallback) {
+      try { videoRef.current.cancelVideoFrameCallback(vfcRef.current); } catch {}
+    }
+    // Close landmarker to free WebGL/wasm resources
+    if (landmarkerRef.current && landmarkerRef.current.close) {
+      try { landmarkerRef.current.close(); } catch {}
+    }
+    landmarkerRef.current = null;
+    lastPoseRef.current = null;
+    lastVideoTimeRef.current = -1;
     const v = videoRef.current;
     if (v) {
       v.pause();
@@ -151,42 +268,215 @@ export default function WorkoutPage() {
     // don't fully disconnect socket; keep it for app lifetime
   }
 
-  // This will run each frame: draw video and overlay
-  function drawLoop() {
+  function startDrawing() {
+    const video = videoRef.current;
+    if (!video) return;
+    const hasVFC = typeof video.requestVideoFrameCallback === "function";
+    if (hasVFC) {
+      const tick = (now /* DOMHighResTimeStamp */, metadata) => {
+        // Always reschedule next frame to avoid race with setState
+        vfcRef.current = video.requestVideoFrameCallback(tick);
+        if (!runningRef.current) return;
+        if (debug && !firstTickLoggedRef.current) {
+          firstTickLoggedRef.current = true;
+          console.info("VFC tick firing");
+        }
+        // Prefer mediaTime from VFC metadata for pose timestamp
+        const ts = metadata && typeof metadata.mediaTime === 'number' ? metadata.mediaTime * 1000 : now;
+        drawFrame(ts);
+      };
+      vfcRef.current = video.requestVideoFrameCallback(tick);
+    } else {
+      const tick = (now) => {
+        rafRef.current = requestAnimationFrame(tick);
+        if (!runningRef.current) return;
+        if (debug && !firstTickLoggedRef.current) {
+          firstTickLoggedRef.current = true;
+          console.info("RAF tick firing");
+        }
+        drawFrame(now || performance.now());
+      };
+      rafRef.current = requestAnimationFrame(tick);
+    }
+  }
+
+  // Draw only the overlay; video is rendered directly underneath
+  function drawFrame(nowInMs) {
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
 
     const ctx = canvas.getContext("2d");
-    // 1) Draw the current video frame
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    // Keep canvas resolution in sync with displayed size
+    const cw = canvas.clientWidth;
+    const ch = canvas.clientHeight;
+    if (cw && ch && (canvas.width !== cw || canvas.height !== ch)) {
+      canvas.width = cw;
+      canvas.height = ch;
+    }
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Run pose detection for current frame and emit landmarks
+    tryDetectAndEmit(video, nowInMs);
 
     // 2) Draw overlay - grid + bounding “training” region
     drawOverlay(ctx, canvas);
 
     // 3) If you had model results, draw them:
-    // const pose = lastPoseRef.current; drawPose(ctx, pose);
+    const pose = lastPoseRef.current; drawPose(ctx, pose, canvas);
 
     // 4) Placeholder: emit a dummy pose heartbeat every ~10 frames
     // Replace this with real MediaPipe/MoveNet keypoints later.
-    if (Math.random() < 0.08) {
-      emitPoseUpdate({ ts: Date.now(), exercise });
-    }
-
-    if (running) {
-      rafRef.current = requestAnimationFrame(drawLoop);
+    // (Removed; now streaming real landmarks)
+    // FPS meter (debug)
+    if (debug) {
+      const now = performance.now();
+      if (!lastFpsAtRef.current) lastFpsAtRef.current = now;
+      framesSinceRef.current += 1;
+      if (now - lastFpsAtRef.current >= 1000) {
+        setFps(framesSinceRef.current);
+        framesSinceRef.current = 0;
+        lastFpsAtRef.current = now;
+      }
     }
   }
 
-  function emitPoseUpdate(pose) {
+  function emitPoseUpdate(poseLandmarks) {
     try {
       const socket = getSocket();
-      socket.emit("pose:update", {
-        userId: user?._id,
-        exercise,
-        pose
-      });
+      socket.emit("pose:update", { userId: user?._id, exercise, poseLandmarks });
     } catch {}
+  }
+
+  async function ensurePoseLandmarker() {
+    if (landmarkerRef.current) return;
+    if (creatingLandmarkerRef.current) {
+      // If another call is already creating the landmarker, await it
+      await creatingLandmarkerRef.current;
+      return;
+    }
+
+    const { FilesetResolver, PoseLandmarker } = await import("@mediapipe/tasks-vision");
+    // Load wasm files from CDN; model from CDN as well
+    const wasmLoaderPath = "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.12/wasm";
+    const modelAssetPath = "https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_full/float16/latest/pose_landmarker_full.task";
+
+    const create = async () => {
+      // Initialize resolver once
+      if (!visionRef.current) {
+        visionRef.current = await FilesetResolver.forVisionTasks(wasmLoaderPath);
+      }
+      try {
+        landmarkerRef.current = await PoseLandmarker.createFromOptions(visionRef.current, {
+          baseOptions: { modelAssetPath, delegate: "GPU" },
+          runningMode: "VIDEO",
+          numPoses: 1,
+          minPoseDetectionConfidence: 0.35,
+          minPoseTrackingConfidence: 0.35,
+          minPosePresenceConfidence: 0.35,
+        });
+      } catch (e) {
+        // Fallback to CPU if GPU delegate fails
+        landmarkerRef.current = await PoseLandmarker.createFromOptions(visionRef.current, {
+          baseOptions: { modelAssetPath, delegate: "CPU" },
+          runningMode: "VIDEO",
+          numPoses: 1,
+          minPoseDetectionConfidence: 0.35,
+          minPoseTrackingConfidence: 0.35,
+          minPosePresenceConfidence: 0.35,
+        });
+      }
+    };
+
+    creatingLandmarkerRef.current = create();
+    try {
+      await creatingLandmarkerRef.current;
+    } finally {
+      creatingLandmarkerRef.current = null;
+    }
+  }
+
+  function tryDetectAndEmit(video, nowInMs) {
+    const landmarker = landmarkerRef.current;
+    if (!landmarker) return;
+    // Ensure the video element is fully ready
+    if (!video.videoWidth || !video.videoHeight) return;
+    // Detect using given timestamp, avoiding duplicate detection on same mediaTime when available
+    const t = video.currentTime;
+    if (t === lastVideoTimeRef.current) {
+      // still run detect to keep results fresh, but note that mediaTime hasn't advanced
+    } else {
+      lastVideoTimeRef.current = t;
+    }
+    // Use a monotonic timestamp; tasks-vision expects an increasing ms clock
+    const timestampMs = typeof nowInMs === "number" ? nowInMs : performance.now();
+    let res;
+    try {
+      res = landmarker.detectForVideo(video, timestampMs);
+    } catch (err) {
+      console.error("detectForVideo error", err);
+      return;
+    }
+    const arr = (res && (res.landmarks || res.poseLandmarks)) || [];
+    if (arr && arr.length > 0) {
+      const lm = arr[0];
+      lastPoseRef.current = lm;
+      emitPoseUpdate(lm);
+      if (debug && !firstDetectLoggedRef.current) {
+        firstDetectLoggedRef.current = true;
+        try {
+          // Log first detection sample for quick sanity check
+          // Expect 33 keypoints, show a couple
+          // eslint-disable-next-line no-console
+          console.info("Pose detected:", { count: lm?.length, sample: lm?.slice(0, 2) });
+        } catch {}
+      }
+    }
+  }
+
+  function drawPose(ctx, landmarks, canvas) {
+    if (!landmarks || !landmarks.length) return;
+    const w = canvas.width, h = canvas.height;
+    // Account for object-cover scaling of the underlying video
+    const video = videoRef.current;
+    const vw = video?.videoWidth || w;
+    const vh = video?.videoHeight || h;
+    const scale = Math.max(w / vw, h / vh);
+    const dw = vw * scale;
+    const dh = vh * scale;
+    const ox = (w - dw) / 2;
+    const oy = (h - dh) / 2;
+    ctx.save();
+    // draw connections (simple)
+    const C = [
+      [11, 13],[13, 15], // left arm
+      [12, 14],[14, 16], // right arm
+      [11, 12],          // shoulders
+      [23, 24],          // hips
+      [11, 23],[12, 24], // torso
+      [23, 25],[25, 27], // left leg
+      [24, 26],[26, 28], // right leg
+    ];
+    ctx.strokeStyle = "rgba(59,130,246,0.9)"; // blue
+    ctx.lineWidth = 2;
+    for (const [a,b] of C) {
+      const pa = landmarks[a];
+      const pb = landmarks[b];
+      if (!pa || !pb) continue;
+      ctx.beginPath();
+      ctx.moveTo(ox + pa.x * dw, oy + pa.y * dh);
+      ctx.lineTo(ox + pb.x * dw, oy + pb.y * dh);
+      ctx.stroke();
+    }
+    // draw keypoints
+    ctx.fillStyle = "rgba(16,185,129,0.95)"; // emerald
+    for (const p of landmarks) {
+      ctx.beginPath();
+      ctx.arc(ox + p.x * dw, oy + p.y * dh, 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.restore();
   }
 
   function drawOverlay(ctx, canvas) {
@@ -267,12 +557,23 @@ export default function WorkoutPage() {
         {/* Camera panel */}
         <motion.div {...fade(0)} className="lg:col-span-2">
           <Card title="Live Camera" subtitle={feedback} className="p-3 md:p-4">
-            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-black">
-              {/* Video under the canvas (hidden—canvas shows the frame + overlay) */}
-              <video ref={videoRef} playsInline muted className="hidden" />
+            <div className="relative aspect-video overflow-hidden rounded-2xl border border-white/10 bg-black">
+              {/* Visible video background; canvas overlays for guides/HUD */}
+              <video
+                ref={videoRef}
+                playsInline
+                muted
+                autoPlay
+                className="absolute inset-0 w-full h-full object-cover"
+                style={{ transform: mirror ? "scaleX(-1)" : "none" }}
+              />
 
-              {/* Canvas draws the video frame + overlay */}
-              <canvas ref={canvasRef} className="w-full h-auto block" />
+              {/* Canvas draws only overlay; mirrors with video */}
+              <canvas
+                ref={canvasRef}
+                className="absolute inset-0 w-full h-full block pointer-events-none"
+                style={{ transform: mirror ? "scaleX(-1)" : "none" }}
+              />
 
               {/* Top-right HUD buttons */}
               <div className="absolute top-3 right-3 flex gap-2">
@@ -284,23 +585,31 @@ export default function WorkoutPage() {
                 >
                   {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                 </Button>
-                <Button variant="secondary" size="sm" onClick={() => alert("Calibration coming soon!")}>
+                <Button as="a" href="/calibrate" variant="secondary" size="sm" title="Open calibration">
                   <Camera className="h-4 w-4" />
                 </Button>
-              </div>
+          </div>
 
-              {/* Center watermark */}
-              {!running && (
-                <div className="absolute inset-0 grid place-items-center">
+          {/* Center watermark */}
+          {!running && (
+            <div className="absolute inset-0 grid place-items-center">
                   <div className="flex items-center gap-2 text-brand-muted">
                     <Sparkles className="h-5 w-5" />
                     <span>Click Start to begin</span>
-                  </div>
-                </div>
-              )}
+              </div>
             </div>
-            {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
-          </Card>
+          )}
+
+          {/* Debug HUD */}
+          {debug && (
+            <div className="absolute bottom-3 right-3 text-xs bg-black/60 rounded-md px-2 py-1 text-emerald-200">
+              <span>FPS: {fps}</span>
+              {lastPoseRef.current ? <span className="ml-2">LM: ✓</span> : <span className="ml-2">LM: …</span>}
+            </div>
+          )}
+        </div>
+        {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
+      </Card>
         </motion.div>
 
         {/* Controls / session info */}

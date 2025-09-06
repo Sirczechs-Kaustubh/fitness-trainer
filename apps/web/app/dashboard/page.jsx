@@ -37,14 +37,14 @@ export default function DashboardPage() {
           setStats({
             summary: {
               caloriesWeek: 0,
-              totalRepsWeek: data.stats.totalReps || 0,
+              totalRepsWeek: data?.stats?.totalReps || 0,
               formAccuracy: 0,
-              minutesTrained: data.stats.totalDuration || 0,
+              minutesTrained: data?.stats?.totalDuration || 0,
               deltas: {}, // No comparison data for new users
             },
             // Provide empty arrays for the charts to prevent crashes
-            weeklyRps: [],
-            monthlyCalories: [],
+            weeklyReps: Array(7).fill(0),
+            monthlyCalories: [0, 0, 0, 0],
             accuracyHistory: [],
           });
         }
@@ -163,7 +163,7 @@ export default function DashboardPage() {
         <Button as="a" href="/workout" className="card-glass !p-4 justify-start">
           <Dumbbell className="mr-2" /> Start Workout
         </Button>
-        <Button as="a" href="#" variant="secondary" className="card-glass !p-4 justify-start">
+        <Button as="a" href="/calibrate" variant="secondary" className="card-glass !p-4 justify-start">
           <Activity className="mr-2" /> Calibrate Camera
         </Button>
         <Button as="a" href="/profile" variant="secondary" className="card-glass !p-4 justify-start">
