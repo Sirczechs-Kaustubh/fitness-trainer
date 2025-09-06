@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { Dumbbell, Play, Square, Camera, Sparkles, Activity, Volume2, VolumeX } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
@@ -59,6 +59,9 @@ export default function WorkoutPage() {
   const lastFpsAtRef = useRef(0);
   const firstDetectLoggedRef = useRef(false);
   const firstTickLoggedRef = useRef(false);
+  const [example, setExample] = useState({ loading: false, url: null, name: null, source: null });
+  const [exercisesList, setExercisesList] = useState([]);
+  const selectedExercise = useMemo(() => exercisesList.find((x) => x.name === exercise) || null, [exercisesList, exercise]);
 
   // timer
   useEffect(() => {
@@ -82,6 +85,44 @@ export default function WorkoutPage() {
 
   // cleanup on unmount
   useEffect(() => () => stopEverything(), []);
+
+  // Fetch exercises from API; fallback to static list if unavailable
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const { data } = await api.get("/exercises", { params: { limit: 100 } });
+        const items = Array.isArray(data?.data) ? data.data : [];
+        if (!active) return;
+        setExercisesList(items);
+        if (items.length && !items.find((e) => e.name === exercise)) {
+          setExercise(items[0].name);
+        }
+      } catch (e) {
+        if (!active) return;
+        setExercisesList([]);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
+  // Fetch example video for current exercise
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      if (!ready || !exercise) return;
+      try {
+        setExample((e) => ({ ...e, loading: true }));
+        const { data } = await api.get(`/exercises/example`, { params: { name: exercise } });
+        if (!active) return;
+        setExample({ loading: false, url: data?.videoUrl || null, name: data?.name || exercise, source: data?.source || null });
+      } catch (e) {
+        if (!active) return;
+        setExample({ loading: false, url: null, name: exercise, source: null });
+      }
+    })();
+    return () => { active = false; };
+  }, [exercise, ready]);
 
   // Optional: warm up the pose model to reduce start delay
   useEffect(() => {
@@ -585,8 +626,8 @@ export default function WorkoutPage() {
                 >
                   {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                 </Button>
-                <Button as="a" href="/calibrate" variant="secondary" size="sm" title="Open calibration">
-                  <Camera className="h-4 w-4" />
+                <Button as="a" href="/calibrate" variant="secondary" size="sm" title="Open AI plan">
+                  <Sparkles className="h-4 w-4" />
                 </Button>
           </div>
 
@@ -623,10 +664,42 @@ export default function WorkoutPage() {
               onChange={(e) => setExercise(e.target.value)}
               disabled={running}
             >
-              {EXERCISES.map((x) => (
+              {(exercisesList.length ? exercisesList.map((x) => x.name) : EXERCISES).map((x) => (
                 <option key={x} value={x}>{x}</option>
               ))}
             </select>
+
+            {selectedExercise && (
+              <div className="mt-2 text-xs text-brand-muted">
+                <div className="flex flex-wrap gap-2">
+                  <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5">
+                    <span className="opacity-70">Difficulty:</span>
+                    <span className="ml-1 text-brand-text">{selectedExercise.difficulty || "—"}</span>
+                  </span>
+                  {Array.isArray(selectedExercise.musclesTargeted) && selectedExercise.musclesTargeted.slice(0,2).map((m) => (
+                    <span key={m} className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-brand-text">{m}</span>
+                  ))}
+                  {Array.isArray(selectedExercise.musclesTargeted) && selectedExercise.musclesTargeted.length > 2 && (
+                    <span className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-2 py-0.5">+{selectedExercise.musclesTargeted.length - 2} more</span>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Inline example video for current exercise */}
+            <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+              <p className="text-xs text-brand-muted mb-2">Example: <span className="text-brand-text">{example.name || exercise}</span></p>
+              {example.loading ? (
+                <p className="text-xs text-brand-muted">Loading example…</p>
+              ) : example.url ? (
+                <div>
+                  {renderEmbeddedVideo(example.url)}
+                  {example.source && <p className="mt-2 text-[11px] text-brand-muted">Source: {example.source}</p>}
+                </div>
+              ) : (
+                <p className="text-xs text-brand-muted">No example found. Check Tutorials.</p>
+              )}
+            </div>
 
             {/* Session metrics */}
             <div className="grid grid-cols-3 gap-3">
@@ -666,6 +739,8 @@ export default function WorkoutPage() {
             </div>
           </Card>
 
+          
+
           <div className="mt-4">
             <Card title="How it works" className="p-4">
               <ol className="list-decimal pl-5 space-y-2 text-sm text-brand-muted">
@@ -677,6 +752,89 @@ export default function WorkoutPage() {
           </div>
         </motion.div>
       </div>
+    </div>
+  );
+}
+
+function toYouTubeEmbed(url) {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes('youtu.be')) {
+      return `https://www.youtube.com/embed/${u.pathname.slice(1)}`;
+    }
+    if (u.hostname.includes('youtube.com')) {
+      const id = u.searchParams.get('v');
+      if (id) return `https://www.youtube.com/embed/${id}`;
+      // handle shorts or embed forms
+      const parts = u.pathname.split('/').filter(Boolean);
+      if (parts[0] === 'shorts' && parts[1]) return `https://www.youtube.com/embed/${parts[1]}`;
+    }
+    return url;
+  } catch {
+    return url;
+  }
+}
+
+function toVimeoEmbed(url) {
+  try {
+    const u = new URL(url);
+    if (u.hostname.includes('vimeo.com')) {
+      const parts = u.pathname.split('/').filter(Boolean);
+      const id = parts.find((p) => /^\d+$/.test(p));
+      if (id) return `https://player.vimeo.com/video/${id}`;
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+function isDirectVideo(url) {
+  return /(\.mp4|\.webm|\.ogg)(\?.*)?$/i.test(url);
+}
+
+function renderEmbeddedVideo(url) {
+  if (/youtube\.com|youtu\.be/.test(url)) {
+    const src = toYouTubeEmbed(url);
+    return (
+      <div className="aspect-video w-full overflow-hidden rounded-2xl border border-white/10">
+        <iframe
+          src={src}
+          title="Exercise Example"
+          className="w-full h-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+          allowFullScreen
+        />
+      </div>
+    );
+  }
+  const vimeo = toVimeoEmbed(url);
+  if (vimeo) {
+    return (
+      <div className="aspect-video w-full overflow-hidden rounded-2xl border border-white/10">
+        <iframe
+          src={vimeo}
+          title="Exercise Example"
+          className="w-full h-full"
+          allow="autoplay; fullscreen; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
+    );
+  }
+  if (isDirectVideo(url)) {
+    return (
+      <video src={url} controls className="w-full rounded-2xl border border-white/10" preload="metadata" />
+    );
+  }
+  return (
+    <div className="aspect-video w-full overflow-hidden rounded-2xl border border-white/10">
+      <iframe
+        src={url}
+        title="Exercise Example"
+        className="w-full h-full"
+        sandbox="allow-scripts allow-same-origin allow-popups"
+      />
     </div>
   );
 }
