@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Dumbbell, Play, Square, Camera, Sparkles, Activity, Volume2, VolumeX } from "lucide-react";
+import { Dumbbell, Play, Square, Camera, Sparkles, Activity, Volume2, VolumeX, CheckCircle2, ChevronRight, Maximize2, Minimize2 } from "lucide-react";
 import useAuth from "@/hooks/useAuth";
 import { getSocket, disconnectSocket } from "@/lib/socket";
 import Card from "@/components/ui/Card";
@@ -26,6 +26,9 @@ const EXERCISES = [
   "Mountain Climber",
 ];
 
+// Persisted session storage key
+const SESSION_KEY = "workout_session_v1";
+
 export default function WorkoutPage() {
   const { user, ready } = useAuth({ requireAuth: false });
   const [running, setRunning] = useState(false);
@@ -40,6 +43,20 @@ export default function WorkoutPage() {
   const [workoutId, setWorkoutId] = useState(null);
   const [mirror, setMirror] = useState(true);
   const [calib, setCalib] = useState(null);
+  const [plan, setPlan] = useState(null); // latest AI plan
+  const [selectedDay, setSelectedDay] = useState(null); // label like Mon/Tue
+  const [dayItems, setDayItems] = useState([]); // parsed exercises for selected day
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [completed, setCompleted] = useState(false);
+  const [repsBaseline, setRepsBaseline] = useState(0); // for multi-sets counting within one exercise
+  const [resumePrompt, setResumePrompt] = useState(false);
+  const [fullscreen, setFullscreen] = useState(null); // 'camera' | 'tutorial' | null
+  const [feedbackSize, setFeedbackSize] = useState('md'); // 'sm' | 'md' | 'lg' | 'xl'
+  // Voice cues state/refs
+  const lastCueAtRef = useRef(0);
+  const lastCueTextRef = useRef("");
+  const prevRepRef = useRef(0);
+  const speakingRef = useRef(false);
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -83,8 +100,96 @@ export default function WorkoutPage() {
     } catch {}
   }, []);
 
+  // Load voice cue preference
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem('voice_cues_enabled');
+      if (v !== null) setMuted(v !== 'true');
+    } catch {}
+  }, []);
+  // Persist voice cue preference
+  useEffect(() => {
+    try { localStorage.setItem('voice_cues_enabled', (!muted).toString()); } catch {}
+  }, [muted]);
+
+  // Load and persist feedback text size
+  useEffect(() => {
+    try {
+      const s = localStorage.getItem('feedback_text_size');
+      if (s) setFeedbackSize(s);
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try { localStorage.setItem('feedback_text_size', feedbackSize); } catch {}
+  }, [feedbackSize]);
+
   // cleanup on unmount
   useEffect(() => () => stopEverything(), []);
+
+  // Load latest saved AI plan for day selection
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data } = await api.get("/plans/latest");
+        const p = data?.plan?.planObject || null;
+        setPlan(p);
+        const w = p?.weeklyPlan || [];
+        // Default selected day: today if present else first
+        const dayMap = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+        const today = dayMap[new Date().getDay()];
+        const match = w.find((d) => (d.day || "").toLowerCase().startsWith(today.toLowerCase()));
+        if (match) setSelectedDay(match.day);
+        else if (w.length) setSelectedDay(w[0].day);
+      } catch {}
+    })();
+  }, []);
+
+  // Parse exercises for the selected day
+  useEffect(() => {
+    if (!plan || !selectedDay) { setDayItems([]); return; }
+    const day = (plan.weeklyPlan || []).find((d) => (d.day || "").toLowerCase() === (selectedDay || "").toLowerCase());
+    if (!day) { setDayItems([]); return; }
+    const defaultSets = parseInt((day.sets || "").toString().replace(/[^0-9]/g, "")) || 1;
+    const defaultReps = parseInt((day.reps || "").toString().replace(/[^0-9]/g, "")) || 10;
+    const baseItems = (day.items || []).map((raw) => parseExerciseItem(raw, defaultSets, defaultReps));
+    const progressed = applySavedDayProgress(selectedDay, todayIso, baseItems);
+    setDayItems(progressed.items);
+    setCurrentIndex(progressed.index);
+    // Keep exercise UI in sync with first item for correct examples/labels
+    if (progressed.items && progressed.items.length && !runningRef.current) {
+      setExercise(progressed.items[progressed.index]?.name || progressed.items[0].name);
+    }
+  }, [plan, selectedDay]);
+
+  // Keep exercise selection synced when switching currentIndex (before session starts)
+  useEffect(() => {
+    if (!running && dayItems && dayItems[currentIndex]) {
+      setExercise(dayItems[currentIndex].name);
+      // Provide contextual feedback for duration/manual items
+      if (dayItems[currentIndex].manual || dayItems[currentIndex].isDuration) {
+        setFeedback(buildCardioFeedback(dayItems[currentIndex].name));
+      }
+    }
+  }, [currentIndex, dayItems, running]);
+
+  // Restore persisted session if present
+  useEffect(() => {
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem(SESSION_KEY) : null;
+      if (!raw) return;
+      const s = JSON.parse(raw);
+      if (!s || s.status !== 'in-progress') return;
+      setWorkoutId(s.workoutId || null);
+      setSelectedDay(s.selectedDay || null);
+      setDayItems(s.dayItems || []);
+      setCurrentIndex(s.currentIndex || 0);
+      setExercise((s.dayItems?.[s.currentIndex]?.name) || s.exercise || EXERCISES[0]);
+      setSeconds(Math.floor(((Date.now() - (s.startedAt || Date.now()))/1000)));
+      setRepsBaseline(s.repsBaseline || 0);
+      setCompleted(false);
+      setResumePrompt(true);
+    } catch {}
+  }, [ready]);
 
   // Fetch exercises from API; fallback to static list if unavailable
   useEffect(() => {
@@ -111,18 +216,27 @@ export default function WorkoutPage() {
     let active = true;
     (async () => {
       if (!ready || !exercise) return;
-      try {
-        setExample((e) => ({ ...e, loading: true }));
-        const { data } = await api.get(`/exercises/example`, { params: { name: exercise } });
-        if (!active) return;
-        setExample({ loading: false, url: data?.videoUrl || null, name: data?.name || exercise, source: data?.source || null });
-      } catch (e) {
+      // Skip example fetch for duration/manual cardio-like items or unknown exercises
+      const norm = normalizeExerciseName(exercise);
+      const isManual = norm.manual || (dayItems && dayItems[currentIndex] && (dayItems[currentIndex].manual || dayItems[currentIndex].isDuration));
+      const inLibrary = exercisesList.some((x) => x.name === norm.canonical);
+      if (isManual || !inLibrary) {
         if (!active) return;
         setExample({ loading: false, url: null, name: exercise, source: null });
+        return;
+      }
+      try {
+        setExample((e) => ({ ...e, loading: true }));
+        const { data } = await api.get(`/exercises/example`, { params: { name: norm.canonical } });
+        if (!active) return;
+        setExample({ loading: false, url: data?.videoUrl || null, name: data?.name || norm.canonical, source: data?.source || null });
+      } catch (e) {
+        if (!active) return;
+        setExample({ loading: false, url: null, name: norm.canonical, source: null });
       }
     })();
     return () => { active = false; };
-  }, [exercise, ready]);
+  }, [exercise, ready, dayItems, currentIndex, exercisesList]);
 
   // Optional: warm up the pose model to reduce start delay
   useEffect(() => {
@@ -143,17 +257,24 @@ export default function WorkoutPage() {
   async function startSession() {
     setError("");
     try {
-      // 1) Call the API to create the workout session in the database
-      // Tell backend what we plan to do so history has a name
-      const { data } = await api.post("/workouts/start", {
-        plannedExercises: [exercise],
-      });
+      // If voice preference not set, default to enabled once the user interacts
+      try {
+        const stored = localStorage.getItem('voice_cues_enabled');
+        if (stored === null) setMuted(false);
+      } catch {}
+      // 1) Ensure we have an active workoutId; skip creating if already set (plan/day flow)
+      if (!workoutId) {
+        const { data } = await api.post("/workouts/start", {
+          plannedExercises: [exercise],
+        });
 
-      const newWorkoutId = data.workoutId;
-      if (!newWorkoutId) {
-        throw new Error("API did not return a workout ID.");
+        const newWorkoutId = data.workoutId;
+        if (!newWorkoutId) {
+          throw new Error("API did not return a workout ID.");
+        }
+        setWorkoutId(newWorkoutId);
+        persistSession({ workoutId: newWorkoutId });
       }
-      setWorkoutId(newWorkoutId);
 
       // 2) Get camera access with constraints from calibration if available
       const c = calib || {};
@@ -178,7 +299,13 @@ export default function WorkoutPage() {
         });
       }
       streamRef.current = stream;
-      const video = videoRef.current;
+      let video = videoRef.current;
+      if (!video) {
+        // Wait one frame to ensure ref is bound
+        await new Promise((r) => requestAnimationFrame(r));
+        video = videoRef.current;
+        if (!video) throw new Error('Camera not ready – please try again.');
+      }
       video.srcObject = stream;
 
       // Wait until we have data to render
@@ -222,54 +349,204 @@ export default function WorkoutPage() {
         if (typeof payload?.repCount === "number") setReps(payload.repCount);
         if (payload?.feedback) setFeedback(payload.feedback);
         if (typeof payload?.score === "number") setScore(payload.score);
+        try { maybeSpeakCue(payload); } catch {}
       });
       socket.on("session:ready", () => {
         if (debug) console.debug("socket session:ready");
         setFeedback("Session ready. Begin your movement.");
+        try { speakIfAllowed("Session ready. Begin your movement.", { priority: true }); } catch {}
       });
       socket.on("error", (e) => {
         console.error("Socket error", e);
         setError(e?.message || "Real-time analysis error");
+        // If current exercise is not supported or missing, fall back to manual mode
+        const msg = (e?.message || '').toLowerCase();
+        if (msg.includes('not available') || msg.includes('not found')) {
+          try {
+            setDayItems((list) => {
+              if (!Array.isArray(list) || list.length === 0) return list;
+              const updated = [...list];
+              const idx = currentIndex;
+              if (updated[idx]) updated[idx] = { ...updated[idx], manual: true };
+              persistSession({ dayItems: updated });
+              return updated;
+            });
+            // Set cardio-friendly feedback if looks like a duration activity
+            setFeedback(buildCardioFeedback(exercise));
+          } catch {}
+        }
       });
 
-      // Signal backend which exercise we are doing
-      if (debug) console.debug("socket emit session:start", { exercise, userId: user?._id });
-      socket.emit("session:start", { exercise, userId: user?._id });
+      // Signal backend which exercise we are doing (normalize name; suppress for manual/cardio)
+      const norm = normalizeExerciseName(exercise);
+      const manualNow = norm.manual || (dayItems && dayItems[currentIndex] && (dayItems[currentIndex].manual || dayItems[currentIndex].isDuration));
+      if (!manualNow) {
+        if (debug) console.debug("socket emit session:start", { exercise: norm.canonical, userId: user?._id });
+        socket.emit("session:start", { exercise: norm.canonical, userId: user?._id });
+      }
 
       // 5) Load MediaPipe Pose landmarker if not already
       await ensurePoseLandmarker();
       if (debug) console.info("pose landmarker ready");
 
       // 6) Start draw loop (prefer requestVideoFrameCallback when available)
-      startedAtRef.current = Date.now();
+      if (!startedAtRef.current) startedAtRef.current = Date.now();
       setSeconds(0);
       setRunning(true);
       startDrawing();
       if (debug) console.info("drawing loop started");
+      persistSession({ status: 'in-progress', exercise, selectedDay, dayItems, currentIndex, repsBaseline, startedAt: startedAtRef.current });
     } catch (e) {
       console.error(e);
       setError(e.message || "Could not start session. Check camera permissions.");
       stopEverything();
     }
   }
-  
+
+  // Voice cue helpers
+  function speakIfAllowed(text, opts = {}) {
+    if (muted) return;
+    if (!text || typeof window === 'undefined') return;
+    const synth = window.speechSynthesis;
+    if (!synth || typeof SpeechSynthesisUtterance === 'undefined') return;
+
+    const now = Date.now();
+    const minGap = opts.priority ? 800 : 2500; // ms between cues
+    if (!opts.priority && now - lastCueAtRef.current < minGap) return;
+    if (lastCueTextRef.current === text && now - lastCueAtRef.current < 10000) return; // de-dupe same cue longer
+
+    try { synth.cancel(); } catch {}
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US';
+    u.rate = 1.0;
+    u.pitch = 1.0;
+    speakingRef.current = true;
+    u.onend = () => { speakingRef.current = false; };
+    lastCueTextRef.current = text;
+    lastCueAtRef.current = now;
+    try { synth.speak(u); } catch {}
+  }
+
+  function maybeSpeakCue(payload) {
+    if (!payload) return;
+    if (!runningRef.current) return;
+    // Avoid generic cues for manual/duration (e.g., brisk walk); use contextual text instead
+    try {
+      if (dayItems && dayItems[currentIndex] && (dayItems[currentIndex].manual || dayItems[currentIndex].isDuration)) {
+        return; // suppress rep/form cues for cardio
+      }
+    } catch {}
+    const rc = typeof payload.repCount === 'number' ? payload.repCount : reps;
+    const fb = (payload.feedback || '').trim();
+    const sc = typeof payload.score === 'number' ? payload.score : score;
+    // Positive cue on rep increment (reduce frequency)
+    if (rc > (prevRepRef.current || 0)) {
+      prevRepRef.current = rc;
+      if (rc % 3 === 0) {
+        const positives = ["Great rep!", "Nice!", "Good job!", "Keep it up!"];
+        const say = positives[(rc/3) % positives.length];
+        speakIfAllowed(say);
+      }
+      return;
+    }
+    prevRepRef.current = rc;
+
+    if (!fb) {
+      // fallback by score thresholds
+      if (sc >= 85) speakIfAllowed("Perfect posture");
+      else if (sc <= 55) speakIfAllowed("Engage your core and adjust form");
+      return;
+    }
+    // Normalize and gate repeated error cues
+    const t = fb.toLowerCase();
+    // Map certain keywords to concise cues
+    const mappings = [
+      { k: ['back', 'straight'], m: 'Keep your back straight' },
+      { k: ['lower', 'depth'], m: 'Go lower' },
+      { k: ['knees', 'inward', 'valgus'], m: 'Keep knees tracking over toes' },
+      { k: ['core', 'brace'], m: 'Engage your core' },
+      { k: ['hips', 'hinge'], m: 'Hinge at the hips' },
+      { k: ['shoulders', 'retract'], m: 'Pull your shoulders back' },
+      { k: ['elbows', 'tuck'], m: 'Tuck your elbows' },
+      { k: ['pace', 'faster', 'slower'], m: 'Control the pace' },
+    ];
+    let cue = null;
+    for (const map of mappings) {
+      if (map.k.every((kw) => t.includes(kw))) { cue = map.m; break; }
+    }
+    if (!cue) {
+      // If feedback looks positive, reflect it; else relay as-is briefly
+      const pos = /(good|great|nice|perfect|excellent)/i.test(fb);
+      cue = pos ? 'Great form' : fb;
+    }
+    // Gate error cues by type to once per 10s
+    const key = cue.toLowerCase();
+    if (!maybeSpeakCue._lastByKey) maybeSpeakCue._lastByKey = new Map();
+    const lastAt = maybeSpeakCue._lastByKey.get(key) || 0;
+    if (Date.now() - lastAt < 10000) return;
+    maybeSpeakCue._lastByKey.set(key, Date.now());
+    speakIfAllowed(cue);
+  }
+
+  function buildCardioFeedback(name) {
+    const n = (name || '').toLowerCase();
+    if (n.includes('walk') || n.includes('jog') || n.includes('run')) return 'Maintain a brisk pace, relaxed shoulders, steady breathing.';
+    if (n.includes('bike') || n.includes('cycle')) return 'Smooth cadence, light grip on bars, steady breathing.';
+    if (n.includes('row')) return 'Drive with legs, upright torso, fluid strokes, breathe steadily.';
+    if (n.includes('zone')) return 'Keep conversational pace in Zone 2, breathe through the nose if possible.';
+    return 'Steady cadence and breathing. Keep posture tall and relaxed.';
+  }
+
+  // Begin workout for selected day: creates workout and starts tracking first exercise
+  async function beginWorkoutForDay() {
+    if (!dayItems || !dayItems.length) {
+      return alert("No exercises found for the selected day.");
+    }
+    setError("");
+    setCompleted(false);
+    const idx = firstIncompleteIndex(dayItems);
+    setCurrentIndex(idx);
+    const names = dayItems.map((x) => x.name);
+    try {
+      const { data } = await api.post("/workouts/start", { plannedExercises: names });
+      const newWorkoutId = data.workoutId;
+      if (!newWorkoutId) throw new Error("Failed to create workout");
+      setWorkoutId(newWorkoutId);
+      setExercise(dayItems[idx].name);
+      setReps(0);
+      setScore(0);
+      setRepsBaseline(0);
+      startedAtRef.current = Date.now();
+      persistSession({
+        status: 'in-progress', workoutId: newWorkoutId, selectedDay, dayItems, currentIndex: idx, repsBaseline: 0, startedAt: startedAtRef.current
+      });
+      await startSession();
+    } catch (e) {
+      console.error(e);
+      alert(e?.message || "Could not start workout");
+    }
+  }
+
   async function endSession() { // 👈 Make the function async
     if (!workoutId) return; // Don't do anything if there's no active workout
 
     try {
       const durationSec = Math.round((Date.now() - (startedAtRef.current || Date.now())) / 1000);
-      
+      // Build exercises payload from sequence if available
+      let payloadExercises = [];
+      if (dayItems && dayItems.length) {
+        payloadExercises = dayItems.map((it) => ({
+          name: it.name,
+          reps: it.totalReps || 0,
+          sets: it.completedSets || 0,
+          formScore: Array.isArray(it.formScores) && it.formScores.length ? Math.round(it.formScores.reduce((a,b)=>a+b,0)/it.formScores.length) : undefined,
+        }));
+      } else {
+        payloadExercises = [{ name: exercise, reps, sets: 1, formScore: score }];
+      }
+
       // Call the API to finalize the workout with a summarized exercise log
-      await api.post(`/workouts/${workoutId}/end`, {
-        exercises: [
-          {
-            name: exercise,
-            reps,
-            sets: 1,
-            formScore: score,
-          },
-        ],
-      });
+      await api.post(`/workouts/${workoutId}/end`, { exercises: payloadExercises });
 
       // We no longer need this, as the REST API call handles the end
       // const socket = getSocket();
@@ -281,6 +558,9 @@ export default function WorkoutPage() {
     } finally {
       stopEverything();
       setWorkoutId(null); // Clean up the workout ID
+      setCompleted(true);
+      try { persistDayProgress(selectedDay, todayIso, dayItems); } catch {}
+      clearPersistedSession();
     }
   }
 
@@ -307,6 +587,56 @@ export default function WorkoutPage() {
       streamRef.current = null;
     }
     // don't fully disconnect socket; keep it for app lifetime
+  }
+
+  // Persist/restore helpers
+  function persistSession(partial = {}) {
+    try {
+      const snapshot = {
+        status: 'in-progress',
+        workoutId,
+        selectedDay,
+        dayItems,
+        currentIndex,
+        repsBaseline,
+        startedAt: startedAtRef.current || Date.now(),
+        exercise,
+        ...partial,
+      };
+      localStorage.setItem(SESSION_KEY, JSON.stringify(snapshot));
+    } catch {}
+  }
+  function clearPersistedSession() {
+    try { localStorage.removeItem(SESSION_KEY); } catch {}
+  }
+
+  // --- Day progress persistence (survives endSession) ---
+  function dayProgressKey(day, iso) {
+    return `workout_day_progress_v1_${(day||'').toLowerCase()}_${iso}`;
+  }
+  function firstIncompleteIndex(items) {
+    const idx = items.findIndex((it) => (it.completedSets || 0) < (it.sets || 1));
+    return idx === -1 ? 0 : idx;
+  }
+  function applySavedDayProgress(day, iso, items) {
+    try {
+      const raw = localStorage.getItem(dayProgressKey(day, iso));
+      if (!raw) return { items, index: 0 };
+      const saved = JSON.parse(raw);
+      if (!Array.isArray(saved?.items)) return { items, index: 0 };
+      const merged = items.map((it) => {
+        const match = saved.items.find((s) => s.name === it.name);
+        return match ? { ...it, completedSets: match.completedSets||0, totalReps: match.totalReps||0, formScores: match.formScores||[], manual: it.manual || !!match.manual, isDuration: it.isDuration || !!match.isDuration } : it;
+      });
+      const index = firstIncompleteIndex(merged);
+      return { items: merged, index };
+    } catch { return { items, index: 0 }; }
+  }
+  function persistDayProgress(day, iso, items) {
+    try {
+      const compact = items.map(({ name, completedSets, totalReps, formScores, manual, isDuration, sets }) => ({ name, completedSets, totalReps, formScores, manual, isDuration, sets }));
+      localStorage.setItem(dayProgressKey(day, iso), JSON.stringify({ items: compact, savedAt: Date.now() }));
+    } catch {}
   }
 
   function startDrawing() {
@@ -594,11 +924,25 @@ export default function WorkoutPage() {
         {/* Logout is available in the global NavBar */}
       </div>
 
+      {resumePrompt && (
+        <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-4 flex items-center justify-between">
+          <div className="text-sm">
+            <span className="text-brand-text font-medium">Resume session?</span>
+            <span className="text-brand-muted ml-2">We found an in-progress workout. Continue where you left off.</span>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => { clearPersistedSession(); setResumePrompt(false); }}>Dismiss</Button>
+            <Button onClick={() => { setResumePrompt(false); startSession(); }}><Play className="h-4 w-4 mr-2"/>Resume</Button>
+          </div>
+        </div>
+      )}
+
       <div className="grid lg:grid-cols-3 gap-6">
         {/* Camera panel */}
         <motion.div {...fade(0)} className="lg:col-span-2">
-          <Card title="Live Camera" subtitle={feedback} className="p-3 md:p-4">
-            <div className="relative aspect-video overflow-hidden rounded-2xl border border-white/10 bg-black">
+          <Card title="Live Camera" className="p-3 md:p-4">
+            <div className={`${fullscreen === 'camera' ? 'fixed inset-0 z-50 p-4 bg-black/90' : ''}`}>
+              <div className={`${fullscreen === 'camera' ? 'relative w-full h-full' : 'relative aspect-video'} overflow-hidden rounded-2xl border border-white/10 bg-black`} style={fullscreen === 'camera' ? {minHeight: 'calc(100vh - 5rem)'} : undefined}>
               {/* Visible video background; canvas overlays for guides/HUD */}
               <video
                 ref={videoRef}
@@ -629,17 +973,29 @@ export default function WorkoutPage() {
                 <Button as="a" href="/calibrate" variant="secondary" size="sm" title="Open AI plan">
                   <Sparkles className="h-4 w-4" />
                 </Button>
-          </div>
-
-          {/* Center watermark */}
-          {!running && (
-            <div className="absolute inset-0 grid place-items-center">
-                  <div className="flex items-center gap-2 text-brand-muted">
-                    <Sparkles className="h-5 w-5" />
-                    <span>Click Start to begin</span>
+                <Button variant="secondary" size="sm" title={fullscreen === 'camera' ? 'Exit Fullscreen' : 'Fullscreen'} onClick={() => setFullscreen(fs => fs === 'camera' ? null : 'camera')}>
+                  {fullscreen === 'camera' ? <Minimize2 className="h-4 w-4"/> : <Maximize2 className="h-4 w-4"/>}
+                </Button>
               </div>
-            </div>
-          )}
+
+              {/* Center watermark */}
+              {!running && (
+                <div className="absolute inset-0 grid place-items-center">
+                      <div className="flex items-center gap-2 text-brand-muted">
+                        <Sparkles className="h-5 w-5" />
+                        <span>Click Start to begin</span>
+                  </div>
+                </div>
+              )}
+
+              {/* Prominent feedback text overlay */}
+              {feedback && (
+                <div className="absolute left-1/2 -translate-x-1/2 top-4 z-10 max-w-[88%] pointer-events-none">
+                  <div className={`px-4 py-2 rounded-2xl bg-black/60 text-white font-bold text-center shadow-lg ${feedbackTextSizeClass(feedbackSize)}`} style={{textShadow: '0 1px 2px rgba(0,0,0,0.7)'}}>
+                    {feedback}
+                  </div>
+                </div>
+              )}
 
           {/* Debug HUD */}
           {debug && (
@@ -650,24 +1006,77 @@ export default function WorkoutPage() {
           )}
         </div>
         {error && <p className="mt-3 text-sm text-red-500">{error}</p>}
+      </div>
       </Card>
         </motion.div>
 
         {/* Controls / session info */}
         <motion.div {...fade(0.05)} className="lg:col-span-1">
-          <Card title="Controls" subtitle="Choose exercise and manage session" className="p-6 space-y-4">
-            {/* Exercise picker */}
-            <label className="text-sm font-medium">Exercise</label>
-            <select
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-white"
-              value={exercise}
-              onChange={(e) => setExercise(e.target.value)}
-              disabled={running}
-            >
-              {(exercisesList.length ? exercisesList.map((x) => x.name) : EXERCISES).map((x) => (
-                <option key={x} value={x}>{x}</option>
-              ))}
-            </select>
+          <Card title="Controls" subtitle="Choose day or single exercise" className="p-6 space-y-4">
+            {/* Settings: feedback text size */}
+            <div className="grid grid-cols-2 gap-2 items-center">
+              <label className="text-sm font-medium">Feedback text size</label>
+              <select
+                className="w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-white"
+                value={feedbackSize}
+                onChange={(e) => setFeedbackSize(e.target.value)}
+                disabled={running}
+              >
+                <option value="sm">Small</option>
+                <option value="md">Medium</option>
+                <option value="lg">Large</option>
+                <option value="xl">Huge</option>
+              </select>
+            </div>
+            {/* Day selector if plan available; fallback to single exercise select */}
+            {plan?.weeklyPlan?.length ? (
+              <div>
+                <label className="text-sm font-medium">Plan Day</label>
+                <select
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-white mt-1"
+                  value={selectedDay || ''}
+                  onChange={(e) => setSelectedDay(e.target.value)}
+                  disabled={running}
+                >
+                  {(plan.weeklyPlan || []).map((d, i) => (
+                    <option key={i} value={d.day}>{d.day} · {d.focus}</option>
+                  ))}
+                </select>
+                {dayItems?.length ? (
+                  <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-brand-muted">Progress</span>
+                      <span className="text-brand-text">Exercise {Math.min(currentIndex+1, dayItems.length)} of {dayItems.length}</span>
+                    </div>
+                    <div className="mt-2">
+                      {dayItems.map((it, idx) => (
+                        <div key={idx} className="flex items-center justify-between py-1 text-xs">
+                          <div className="flex items-center gap-2">
+                            {idx < currentIndex ? <CheckCircle2 className="h-4 w-4 text-emerald-400"/> : <span className="h-4 w-4 rounded-full border border-white/20 inline-block"/>}
+                            <span className={idx === currentIndex ? 'text-brand-text' : 'text-brand-muted'}>{it.name}</span>
+                          </div>
+                          <div className="text-brand-muted">{it.completedSets || 0}/{it.sets} sets</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <div>
+                <label className="text-sm font-medium">Exercise</label>
+                <select
+                  className="w-full rounded-2xl border border-white/10 bg-white/5 px-3 py-2 text-white"
+                  value={exercise}
+                  onChange={(e) => setExercise(e.target.value)}
+                  disabled={running}
+                >
+                  {(exercisesList.length ? exercisesList.map((x) => x.name) : EXERCISES).map((x) => (
+                    <option key={x} value={x}>{x}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {selectedExercise && (
               <div className="mt-2 text-xs text-brand-muted">
@@ -688,7 +1097,12 @@ export default function WorkoutPage() {
 
             {/* Inline example video for current exercise */}
             <div className="mt-3 rounded-2xl border border-white/10 bg-white/5 p-3">
-              <p className="text-xs text-brand-muted mb-2">Example: <span className="text-brand-text">{example.name || exercise}</span></p>
+              <p className="text-xs text-brand-muted mb-2 flex items-center justify-between">
+                <span>Example: <span className="text-brand-text">{example.name || exercise}</span></span>
+                <Button variant="secondary" size="sm" onClick={() => setFullscreen(fs => fs === 'tutorial' ? null : 'tutorial')}>
+                  {fullscreen === 'tutorial' ? <><Minimize2 className="h-4 w-4 mr-1"/>Exit Fullscreen</> : <><Maximize2 className="h-4 w-4 mr-1"/>Fullscreen</>}
+                </Button>
+              </p>
               {example.loading ? (
                 <p className="text-xs text-brand-muted">Loading example…</p>
               ) : example.url ? (
@@ -698,6 +1112,10 @@ export default function WorkoutPage() {
                 </div>
               ) : (
                 <p className="text-xs text-brand-muted">No example found. Check Tutorials.</p>
+              )}
+              {/* Cardio/duration fallback note */}
+              {dayItems?.length > 0 && dayItems[currentIndex] && (dayItems[currentIndex].manual || dayItems[currentIndex].isDuration) && (
+                <p className="text-[11px] text-amber-300 mt-2">Duration-only exercise detected — using default target of {dayItems[currentIndex].reps} reps for completion.</p>
               )}
             </div>
 
@@ -717,16 +1135,44 @@ export default function WorkoutPage() {
               </div>
             </div>
 
-            {/* Start/End */}
-            <div className="flex gap-3 pt-2">
+            {/* Start/Advance/End */}
+            <div className="flex gap-3 pt-2 items-center">
               {!running ? (
-                <Button onClick={startSession} className="flex-1">
-                  <Play className="mr-2 h-4 w-4" /> Start
-                </Button>
+                dayItems?.length ? (
+                  <>
+                    {workoutId ? (
+                      <Button onClick={startSession} className="flex-1"><Play className="mr-2 h-4 w-4"/> Resume</Button>
+                    ) : (
+                      <Button onClick={beginWorkoutForDay} className="flex-1"><Play className="mr-2 h-4 w-4"/> Start Workout</Button>
+                    )}
+                  </>
+                ) : (
+                  <Button onClick={startSession} className="flex-1"><Play className="mr-2 h-4 w-4"/> Start (Single)</Button>
+                )
               ) : (
-                <Button variant="danger" onClick={endSession} className="flex-1">
-                  <Square className="mr-2 h-4 w-4" /> End
-                </Button>
+                <>
+                  {dayItems?.length ? (
+                    <DayAdvanceControls
+                      exercise={exercise}
+                      reps={reps}
+                      score={score}
+                      dayItems={dayItems}
+                      currentIndex={currentIndex}
+                      repsBaseline={repsBaseline}
+                      setDayItems={setDayItems}
+                      setCurrentIndex={setCurrentIndex}
+                      setRepsBaseline={setRepsBaseline}
+                      setExercise={setExercise}
+                      userId={user?._id}
+                      persistSession={persistSession}
+                      onProgressChange={(updated) => persistDayProgress(selectedDay, todayIso, updated)}
+                      onFinish={endSession}
+                    />
+                  ) : null}
+                  <Button variant="danger" onClick={endSession} className="flex-1">
+                    <Square className="mr-2 h-4 w-4" /> End
+                  </Button>
+                </>
               )}
             </div>
 
@@ -739,7 +1185,13 @@ export default function WorkoutPage() {
             </div>
           </Card>
 
-          
+          {completed && (
+            <Card className="p-4 mt-2" title="Workout Complete" subtitle="Great job! Your session has been saved.">
+              <div className="flex items-center gap-2 text-sm text-brand-text">
+                <CheckCircle2 className="h-5 w-5 text-emerald-400"/> Session finished and saved.
+              </div>
+            </Card>
+          )}
 
           <div className="mt-4">
             <Card title="How it works" className="p-4">
@@ -752,8 +1204,139 @@ export default function WorkoutPage() {
           </div>
         </motion.div>
       </div>
+
+      {/* Fullscreen tutorial overlay */}
+      {fullscreen === 'tutorial' && example?.url && (
+        <div className="fixed inset-0 z-50 bg-black/90 p-4">
+          <div className="flex justify-end mb-3">
+            <Button variant="secondary" size="sm" onClick={() => setFullscreen(null)}><Minimize2 className="h-4 w-4 mr-1"/>Exit Fullscreen</Button>
+          </div>
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="w-full max-w-5xl">
+              {renderEmbeddedVideo(example.url)}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
+}
+
+function feedbackTextSizeClass(size) {
+  switch (size) {
+    case 'sm': return 'text-lg md:text-xl lg:text-2xl';
+    case 'md': return 'text-xl md:text-2xl lg:text-3xl';
+    case 'xl': return 'text-3xl md:text-4xl lg:text-5xl';
+    case 'lg':
+    default: return 'text-2xl md:text-3xl lg:text-4xl';
+  }
+}
+
+// Advance controls for day-based flow (sets/reps + continue)
+function DayAdvanceControls({ exercise, reps, score, dayItems, currentIndex, repsBaseline, setDayItems, setCurrentIndex, setRepsBaseline, setExercise, userId, persistSession, onProgressChange, onFinish }) {
+  const current = dayItems[currentIndex];
+  if (!current) return null;
+  const setReps = Math.max(0, (reps || 0) - (repsBaseline || 0));
+  const manualMode = !!current.manual || !!current.isDuration;
+  const canComplete = manualMode ? true : setReps >= (current.reps || 0);
+
+  const handleCompleteSet = () => {
+    const updated = [...dayItems];
+    const item = { ...updated[currentIndex] };
+    item.completedSets = (item.completedSets || 0) + 1;
+    item.totalReps = (item.totalReps || 0) + setReps;
+    item.formScores = Array.isArray(item.formScores) ? [...item.formScores, score || 0] : [score || 0];
+    updated[currentIndex] = item;
+    setDayItems(updated);
+    setRepsBaseline(reps); // next set counts from new baseline
+    persistSession({ dayItems: updated, repsBaseline: reps });
+    try { if (typeof onProgressChange === 'function') onProgressChange(updated); } catch {}
+  };
+
+  const handleContinue = () => {
+    // Move to next exercise or finish
+    const nextIndex = currentIndex + 1;
+    if (nextIndex < dayItems.length) {
+      const nextName = dayItems[nextIndex].name;
+      setCurrentIndex(nextIndex);
+      setExercise(nextName);
+      setRepsBaseline(0);
+      // Tell backend about new exercise
+      try {
+        const norm = normalizeExerciseName(nextName);
+        if (!(norm.manual)) getSocket().emit('session:start', { exercise: norm.canonical, userId });
+      } catch {}
+      persistSession({ currentIndex: nextIndex, exercise: nextName, repsBaseline: 0 });
+      try { if (typeof onProgressChange === 'function') onProgressChange(dayItems); } catch {}
+    } else {
+      // All done: finish workout
+      if (typeof onFinish === 'function') onFinish();
+    }
+  };
+
+  const setsDone = current.completedSets || 0;
+  const setsTotal = current.sets || 1;
+  const allSetsDone = setsDone >= setsTotal;
+
+  return (
+    <div className="flex gap-3 flex-1">
+      {!allSetsDone ? (
+        <Button onClick={handleCompleteSet} disabled={!canComplete} className="flex-1">
+          <CheckCircle2 className="mr-2 h-4 w-4"/>
+          {manualMode ? 'Mark Set Done' : `Complete Set (${setsDone+1}/${setsTotal})`}
+        </Button>
+      ) : (
+        <Button onClick={handleContinue} className="flex-1">
+          <ChevronRight className="mr-2 h-4 w-4"/> {currentIndex+1 < dayItems.length ? 'Continue' : 'Finish Workout'}
+        </Button>
+      )}
+    </div>
+  );
+}
+
+// Parse a freeform item string like "Push-ups 3x10" into { name, sets, reps }
+function parseExerciseItem(raw, defaultSets = 1, defaultReps = 10) {
+  const base = { sets: defaultSets, reps: defaultReps, completedSets: 0, totalReps: 0, formScores: [], isDuration: false, manual: false };
+  if (!raw || typeof raw !== 'string') return { name: String(raw || 'Exercise'), ...base };
+  const text = raw.trim();
+  const m = text.match(/^(.*?)(\s+(\d+)x(\d+))?$/i);
+  let name = (m && m[1] ? m[1] : text).trim();
+  let sets = m && m[3] ? parseInt(m[3]) : defaultSets;
+  let reps = m && m[4] ? parseInt(m[4]) : defaultReps;
+  // Detect duration/cardio style items and set sensible defaults
+  const t = text.toLowerCase();
+  const durationHints = /(\bmin\b|\bmins\b|\bminutes\b|\bsec\b|\bsecs\b|\bseconds\b|\bzone\s*2\b|walk|jog|run|bike|cycling|cardio|hiit|row)/i.test(t);
+  if (durationHints && !(m && m[3] && m[4])) {
+    // Use a default target reps for completion to allow flow to progress
+    sets = 1;
+    reps = 30; // default target reps for duration-only items
+    base.isDuration = true;
+    base.manual = true; // enable manual completion
+  }
+  return { name, sets, reps, ...base };
+}
+
+// Normalize plan/freeform names to library canonicals + manual flag for cardio/duration
+function normalizeExerciseName(name) {
+  const n = String(name || '').trim();
+  const lower = n.toLowerCase();
+  const duration = /(\bmin\b|\bmins\b|\bminutes\b|\bsec\b|\bsecs\b|\bseconds\b|\bzone\s*2\b|walk|jog|run|bike|cycling|cardio|row)/i.test(lower);
+  // Common plural/synonym mappings
+  const map = new Map([
+    ['push-ups','Push-up'],
+    ['push up','Push-up'],
+    ['pushups','Push-up'],
+    ['squats','Squat'],
+    ['lunges','Lunge'],
+    ['bicep curls','Bicep Curl'],
+    ['tricep dips','Tricep Dip'],
+    ['mountain climbers','Mountain Climber'],
+    ['jumping jacks','Jumping Jack'],
+    ['jumping jack','Jumping Jack'],
+    ['shoulder press','Shoulder Press'],
+  ]);
+  const canonical = map.get(lower) || n;
+  return { canonical, manual: duration };
 }
 
 function toYouTubeEmbed(url) {

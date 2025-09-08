@@ -140,6 +140,7 @@ export default function AIPlanPage() {
         </div>
         <div className="flex gap-2">
           <Button as="a" href="/workout" className="!p-3"><Dumbbell className="h-4 w-4 mr-2"/>Start Workout</Button>
+          <Button as="a" href="/diet" variant="secondary" className="!p-3"><ChefHat className="h-4 w-4 mr-2"/>Diet Plan</Button>
           <Button as="a" href="/profile" variant="secondary" className="!p-3"><ClipboardList className="h-4 w-4 mr-2"/>Edit Profile</Button>
         </div>
       </div>
