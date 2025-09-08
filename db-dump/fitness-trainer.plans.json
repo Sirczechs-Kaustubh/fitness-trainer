@@ -1,0 +1,126 @@
+[{
+  "_id": {
+    "$oid": "68bc77f99b68727ba9e01d4f"
+  },
+  "user": {
+    "$oid": "68b9fdfce6f30cef9a2fa66d"
+  },
+  "provider": "google",
+  "model": "gemini-1.5-flash",
+  "promptVersion": "v1",
+  "planObject": {
+    "overview": "7-day weight loss plan for Kau (25 years, 152cm, 75kg)",
+    "weeklyPlan": [
+      {
+        "day": "Mon",
+        "focus": "Full Body",
+        "items": [
+          "Squats",
+          "Push-ups",
+          "Lunges",
+          "Plank",
+          "Burpees"
+        ],
+        "sets": "3",
+        "reps": "10-12",
+        "duration": null
+      },
+      {
+        "day": "Tue",
+        "focus": "Cardio",
+        "items": [
+          "Brisk Walking",
+          "Jumping Jacks"
+        ],
+        "sets": null,
+        "reps": null,
+        "duration": "30 minutes"
+      },
+      {
+        "day": "Wed",
+        "focus": "Upper Body",
+        "items": [
+          "Incline Push-ups",
+          "Dumbbell Rows (light)",
+          "Overhead Press (light)",
+          "Bicep Curls (light)"
+        ],
+        "sets": "3",
+        "reps": "10-12",
+        "duration": null
+      },
+      {
+        "day": "Thu",
+        "focus": "Rest or Active Recovery",
+        "items": [
+          "Yoga",
+          "Stretching"
+        ],
+        "sets": null,
+        "reps": null,
+        "duration": "30 minutes"
+      },
+      {
+        "day": "Fri",
+        "focus": "Lower Body",
+        "items": [
+          "Squats",
+          "Lunges",
+          "Glute Bridges",
+          "Calf Raises"
+        ],
+        "sets": "3",
+        "reps": "10-12",
+        "duration": null
+      },
+      {
+        "day": "Sat",
+        "focus": "Cardio",
+        "items": [
+          "Cycling",
+          "Swimming"
+        ],
+        "sets": null,
+        "reps": null,
+        "duration": "45 minutes"
+      },
+      {
+        "day": "Sun",
+        "focus": "Rest or Active Recovery",
+        "items": [
+          "Walking",
+          "Light Stretching"
+        ],
+        "sets": null,
+        "reps": null,
+        "duration": "30 minutes"
+      }
+    ],
+    "diet": {
+      "macros": {
+        "protein": 1.6,
+        "carbs": 2,
+        "fats": 0.8
+      },
+      "note": "Prioritize whole, unprocessed foods.  Increase protein intake to support muscle mass during weight loss.  Hydrate adequately throughout the day.",
+      "sampleMeals": {
+        "breakfast": "Oatmeal with berries and nuts",
+        "lunch": "Grilled chicken salad with mixed greens and vegetables",
+        "snack": "Greek yogurt with fruit",
+        "dinner": "Baked salmon with brown rice and steamed broccoli"
+      }
+    },
+    "calories": {
+      "maintainLow": 1800,
+      "maintainHigh": 2200,
+      "delta": -500
+    }
+  },
+  "createdAt": {
+    "$date": "2025-09-06T18:05:45.092Z"
+  },
+  "updatedAt": {
+    "$date": "2025-09-06T18:05:45.092Z"
+  },
+  "__v": 0
+}]

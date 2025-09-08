@@ -16,6 +16,8 @@ A Node.js/Express REST & WebSocket backend server for authentication, user manag
 * Socket.IO
 * bcryptjs
 * dotenv
+* Helmet
+* CORS
 
 ### Prerequisites
 
@@ -38,55 +40,50 @@ npm install
 Create a `.env` file inside `apps/api/` with these keys:
 
 ```env
-MONGO_URI=<your_mongodb_connection>
-JWT_SECRET=<your_secret>
+MONGO_URI="mongodb://localhost:27017/fitness-trainer?retryWrites=true&w=majority"
+JWT_SECRET="YOUR_SUPER_SECRET_JWT_KEY_THAT_IS_LONG_AND_RANDOM"
 PORT=4000
 ```
 
 ### Running the Backend
 
 ```bash
-# Development
+# Development (with nodemon)
 npm run dev
 
 # Production
 npm start
 ```
 
-Default runs at [http://localhost:4000](http://localhost:4000)
+The backend will run at [http://localhost:4000](http://localhost:4000)
 
 ### Directory Structure (Backend)
 
 ```
-apps/api/
-├── src/
-│   ├── api/
-│   │   ├── controllers/
-│   │   │   ├── auth.controller.js
-│   │   │   ├── user.controller.js
-│   │   │   └── workout.controller.js
-│   │   ├── middlewares/
-│   │   │   └── auth.middleware.js
-│   │   └── routes/
-│   │       ├── auth.routes.js
-│   │       ├── user.routes.js
-│   │       └── workout.routes.js
-│   ├── config/
-│   │   └── database.js
-│   ├── models/
-│   │   ├── User.model.js
-│   │   └── Workout.model.js
-│   ├── websocket/
-│   │   ├── index.js
-│   │   └── rules/        ← to be implemented
-│   └── services/
-├── app.js
-├── index.js
-├── .env
-└── package.json
+apps/api
+├─ src
+│  ├─ api
+│  │  ├─ routes
+│  │  │  ├─ auth.routes.js
+│  │  │  └─ user.routes.js
+│  │  └─ controllers
+│  │     ├─ auth.controller.js
+│  │     └─ user.controller.js
+│  ├─ config
+│  │  └─ database.js
+│  ├─ middlewares
+│  │  └─ auth.middleware.js
+│  ├─ models
+│  │  ├─ User.model.js
+│  │  └─ Workout.model.js
+│  ├─ websocket
+│  │  └─ index.js
+│  ├─ app.js
+│  └─ index.js
+└─ package.json
 ```
 
-**License Backend:** MIT © 2025
+**License Backend:** ISC © 2025
 
 ---
 
@@ -145,29 +142,31 @@ npm start
 ### Directory Structure (Frontend)
 
 ```
-apps/web/
-├── app/
-│   ├── dashboard/
-│   │   └── page.jsx
-│   ├── login/
-│   │   └── page.jsx
-│   ├── profile/
-│   │   └── page.jsx
-│   ├── register/
-│   │   └── page.jsx
-│   ├── globals.css
-│   ├── layout.jsx
-│   └── page.jsx
-├── components/
-│   ├── ui/
-│   │   ├── Button.jsx
-│   │   ├── Card.jsx
-│   │   └── Input.jsx
-├── hooks/
-│   └── useAuth.js
-├── lib/
-│   └── apiClient.js
-└── package.json
+apps/web
+├─ app
+│  ├─ layout.jsx
+│  ├─ page.jsx
+│  ├─ login/page.jsx
+│  ├─ register/page.jsx
+│  ├─ dashboard/page.jsx
+│  └─ profile/page.jsx
+├─ components
+│  ├─ ui
+│  │  ├─ Button.jsx
+│  │  ├─ Input.jsx
+│  │  └─ Card.jsx
+│  └─ dashboard
+│     └─ StatCard.jsx
+├─ hooks
+│  └─ useAuth.js
+├─ lib
+│  └─ apiClient.js
+├─ styles
+│  └─ globals.css
+└─ package.json
 ```
+## TESTING COMPLETE
+
+<img width="1440" height="900" alt="Screenshot 2025-08-30 at 2 20 29 AM" src="https://github.com/user-attachments/assets/d11c0ba4-85d9-40d1-98d8-90af39fd3581" />
 
 **License Frontend:** MIT © 2025

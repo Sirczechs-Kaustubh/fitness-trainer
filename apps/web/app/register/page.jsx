@@ -17,13 +17,13 @@ const fade = (d = 0) => ({
 
 export default function RegisterPage() {
   const router = useRouter();
+
+  // Keep sign up minimal to reduce friction.
+
   const [form, setForm] = useState({
     name: "",
     email: "",
-    password: "",
-    age: "",
-    height: "",
-    weight: "",
+    password: ""
   });
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
@@ -36,7 +36,22 @@ export default function RegisterPage() {
     setLoading(true);
     setErr("");
     try {
-      await api.post("/auth/register", form);
+
+      // --- FIX IS HERE ---
+      
+      // Create a new object with only the required fields.
+      const registrationPayload = {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+      };
+
+      // Send the new payload object instead of the entire form state.
+      await api.post("/auth/register", registrationPayload);
+
+      // --- END OF FIX ---
+
+
       router.push("/login");
     } catch (error) {
       setErr(error?.response?.data?.message || "Registration failed. Try again.");
@@ -95,9 +110,11 @@ export default function RegisterPage() {
           <form onSubmit={onSubmit} className="space-y-4">
             {err && <p className="text-sm text-red-500">{err}</p>}
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+            <div className="grid grid-cols-1 gap-4">
               {/* Name */}
-              <div className="sm:col-span-2">
+              <div>
+
                 <label className="mb-1 block text-sm font-medium">Name</label>
                 <Input
                   name="name"
@@ -109,7 +126,9 @@ export default function RegisterPage() {
               </div>
 
               {/* Email */}
-              <div className="sm:col-span-2">
+
+              <div>
+
                 <label className="mb-1 block text-sm font-medium">Email</label>
                 <Input
                   type="email"
@@ -122,7 +141,9 @@ export default function RegisterPage() {
               </div>
 
               {/* Password */}
-              <div className="sm:col-span-2">
+
+              <div>
+
                 <label className="mb-1 block text-sm font-medium">Password</label>
                 <div className="relative">
                   <Input
@@ -156,19 +177,9 @@ export default function RegisterPage() {
                 <p className="mt-1 text-xs text-brand-muted">Use 8+ chars with a number</p>
               </div>
 
-              {/* Optional starter profile fields */}
-              <div>
-                <label className="mb-1 block text-sm font-medium">Age</label>
-                <Input type="number" name="age" value={form.age} onChange={onChange} placeholder="e.g., 27" min={1}/>
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">Height (cm)</label>
-                <Input type="number" name="height" value={form.height} onChange={onChange} placeholder="e.g., 164" min={1}/>
-              </div>
-              <div>
-                <label className="mb-1 block text-sm font-medium">Weight (kg)</label>
-                <Input type="number" name="weight" value={form.weight} onChange={onChange} placeholder="e.g., 92" min={1}/>
-              </div>
+
+              {/* Profile details will be collected after login via a gentle prompt. */}
+
             </div>
 
             <div className="flex items-center justify-between pt-2">

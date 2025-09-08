@@ -16,7 +16,9 @@ const fade = (d = 0) => ({
 });
 
 export default function ProfilePage() {
-  const { user: sessionUser, ready, logout } = useAuth({ requireAuth: false });
+
+  const { user: sessionUser, ready } = useAuth({ requireAuth: false });
+
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -25,6 +27,9 @@ export default function ProfilePage() {
     weight: "",
     fitnessGoals: "",
   });
+
+  const [original, setOriginal] = useState(null);
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [success, setSuccess] = useState("");
@@ -36,28 +41,34 @@ export default function ProfilePage() {
     let active = true;
     (async () => {
       try {
-        const { data } = await api.get("/users/me");
-        const u = data?.user || sessionUser || {};
+        const resp = await api.get("/users/me");
+        const u = (resp && (resp.data?.data ?? resp.data)) || sessionUser || {};
         if (!active) return;
-        setForm({
+        const initial = {
           name: u.name || "",
           email: u.email || "",
           age: u.age ?? "",
           height: u.height ?? "",
           weight: u.weight ?? "",
-          fitnessGoals: u.fitnessGoals || "",
-        });
+          fitnessGoals: u.fitnessGoals || ""
+        };
+        setForm(initial);
+        setOriginal(initial);
       } catch {
         // Fall back to session if API not ready
         const u = sessionUser || {};
-        setForm({
+        const initial = {
           name: u.name || "",
           email: u.email || "",
           age: u.age ?? "",
           height: u.height ?? "",
           weight: u.weight ?? "",
           fitnessGoals: u.fitnessGoals || "",
-        });
+
+        };
+        setForm(initial);
+        setOriginal(initial);
+
       } finally {
         setLoading(false);
       }
@@ -90,13 +101,32 @@ export default function ProfilePage() {
         weight: form.weight ? Number(form.weight) : undefined,
         fitnessGoals: form.fitnessGoals,
       };
-      const { data } = await api.put("/users/me", payload);
+
+      const resp = await api.put("/users/me", payload);
+      const updatedFromPut = (resp && (resp.data?.data ?? resp.data)) || {};
+      // Follow with a GET to be 100% in sync with server
+      let updated = updatedFromPut;
+      try {
+        const check = await api.get("/users/me");
+        updated = (check && (check.data?.data ?? check.data)) || updatedFromPut;
+      } catch {}
       // Persist updated user into localStorage so the session reflects it
       if (typeof window !== "undefined") {
-        const u = data?.user || payload;
-        const prev = JSON.parse(localStorage.getItem("ff_user") || "{}");
-        localStorage.setItem("ff_user", JSON.stringify({ ...prev, ...u }));
+        const prev = JSON.parse(localStorage.getItem("user") || "{}");
+        localStorage.setItem("user", JSON.stringify({ ...prev, ...updated }));
       }
+      // Update form + original to the server-confirmed values
+      const next = {
+        name: updated.name ?? form.name,
+        email: updated.email ?? form.email,
+        age: updated.age ?? form.age,
+        height: updated.height ?? form.height,
+        weight: updated.weight ?? form.weight,
+        fitnessGoals: updated.fitnessGoals ?? form.fitnessGoals,
+      };
+      setForm(next);
+      setOriginal(next);
+
       setSuccess("Profile updated successfully.");
     } catch (err) {
       setError(err?.response?.data?.message || "Failed to save profile.");
@@ -115,7 +145,9 @@ export default function ProfilePage() {
           <h1 className="text-2xl font-semibold">Profile</h1>
           <p className="text-sm text-brand-muted">Manage your personal info & training preferences.</p>
         </div>
-        <Button variant="secondary" onClick={logout}>Logout</Button>
+
+        {/* Logout is available in the global NavBar */}
+
       </div>
 
       <div className="grid lg:grid-cols-3 gap-6">
@@ -231,7 +263,15 @@ export default function ProfilePage() {
               </div>
 
               <div className="flex items-center justify-end gap-3 pt-2">
-                <Button type="button" variant="secondary" onClick={() => window.location.reload()}>
+
+                <Button
+                  type="button"
+                  variant="secondary"
+                  onClick={() => {
+                    if (original) setForm(original);
+                  }}
+                >
+
                   Reset
                 </Button>
                 <Button type="submit" loading={saving}>

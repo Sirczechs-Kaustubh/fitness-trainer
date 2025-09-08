@@ -1,0 +1,45 @@
+[{
+  "_id": {
+    "$oid": "68b211e268340bab813bd0ff"
+  },
+  "title": "How to Do a Perfect Squat",
+  "description": "Learn the fundamentals of the bodyweight squat for strength and mobility.",
+  "videoUrl": "https://www.youtube.com/watch?v=ultWZbEVQP4",
+  "steps": [
+    "Stand with your feet shoulder-width apart.",
+    "Keep your chest up and your back straight.",
+    "Lower your hips as if sitting in a chair.",
+    "Go as low as you can comfortably, aiming for thighs parallel to the ground.",
+    "Push through your heels to return to the starting position."
+  ],
+  "order": 1,
+  "__v": 0,
+  "createdAt": {
+    "$date": "2025-08-29T20:47:30.544Z"
+  },
+  "updatedAt": {
+    "$date": "2025-08-29T20:47:30.544Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68b211e268340bab813bd100"
+  },
+  "title": "Mastering the Push-Up",
+  "description": "A complete guide to the push-up, a foundational upper-body exercise.",
+  "videoUrl": "https://www.youtube.com/watch?v=IODxDxX7oi4",
+  "steps": [
+    "Start in a high plank position with hands under your shoulders.",
+    "Keep your body in a straight line from head to heels.",
+    "Lower your body until your chest nearly touches the floor.",
+    "Push back up to the starting position, keeping your core engaged."
+  ],
+  "order": 2,
+  "__v": 0,
+  "createdAt": {
+    "$date": "2025-08-29T20:47:30.544Z"
+  },
+  "updatedAt": {
+    "$date": "2025-08-29T20:47:30.544Z"
+  }
+}]

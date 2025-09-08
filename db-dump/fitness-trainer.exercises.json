@@ -1,0 +1,169 @@
+[{
+  "_id": {
+    "$oid": "68b211e268340bab813bd0f4"
+  },
+  "name": "Squat",
+  "description": "A fundamental lower-body exercise that strengthens the quadriceps, glutes, and hamstrings.",
+  "difficulty": "Beginner",
+  "musclesTargeted": [
+    "Quadriceps",
+    "Glutes",
+    "Hamstrings",
+    "Calves"
+  ],
+  "videoUrl": "https://example.com/videos/squat.mp4",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2025-08-29T20:47:30.458Z"
+  },
+  "updatedAt": {
+    "$date": "2025-08-29T20:47:30.458Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68b211e268340bab813bd0f5"
+  },
+  "name": "Push-up",
+  "description": "A classic bodyweight exercise that builds upper-body strength in the chest, shoulders, and triceps.",
+  "difficulty": "Intermediate",
+  "musclesTargeted": [
+    "Pectorals",
+    "Deltoids",
+    "Triceps",
+    "Core"
+  ],
+  "videoUrl": "https://example.com/videos/pushup.mp4",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2025-08-29T20:47:30.458Z"
+  },
+  "updatedAt": {
+    "$date": "2025-08-29T20:47:30.458Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68b211e268340bab813bd0f6"
+  },
+  "name": "Lunge",
+  "description": "An effective single-leg exercise that improves balance, stability, and strength in the legs and glutes.",
+  "difficulty": "Beginner",
+  "musclesTargeted": [
+    "Quadriceps",
+    "Glutes",
+    "Hamstrings"
+  ],
+  "videoUrl": "https://example.com/videos/lunge.mp4",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2025-08-29T20:47:30.458Z"
+  },
+  "updatedAt": {
+    "$date": "2025-08-29T20:47:30.458Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68b211e268340bab813bd0f7"
+  },
+  "name": "Bicep Curl",
+  "description": "An isolation exercise that targets the biceps by flexing the elbow to lift a weight towards the shoulder.",
+  "difficulty": "Beginner",
+  "musclesTargeted": [
+    "Biceps",
+    "Brachialis"
+  ],
+  "videoUrl": "https://example.com/videos/bicepcurl.mp4",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2025-08-29T20:47:30.458Z"
+  },
+  "updatedAt": {
+    "$date": "2025-08-29T20:47:30.458Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68b211e268340bab813bd0f8"
+  },
+  "name": "Shoulder Press",
+  "description": "An upper-body strength exercise that involves pressing a weight overhead to develop the deltoid muscles.",
+  "difficulty": "Intermediate",
+  "musclesTargeted": [
+    "Deltoids",
+    "Triceps",
+    "Trapezius"
+  ],
+  "videoUrl": "https://example.com/videos/shoulderpress.mp4",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2025-08-29T20:47:30.458Z"
+  },
+  "updatedAt": {
+    "$date": "2025-08-29T20:47:30.458Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68b211e268340bab813bd0f9"
+  },
+  "name": "Jumping Jack",
+  "description": "A full-body cardiovascular exercise that involves jumping to a position with legs spread wide and hands touching overhead.",
+  "difficulty": "Beginner",
+  "musclesTargeted": [
+    "Full Body",
+    "Cardio"
+  ],
+  "videoUrl": "https://example.com/videos/jumpingjack.mp4",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2025-08-29T20:47:30.458Z"
+  },
+  "updatedAt": {
+    "$date": "2025-08-29T20:47:30.458Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68b211e268340bab813bd0fa"
+  },
+  "name": "Tricep Dip",
+  "description": "A bodyweight exercise that targets the triceps by lowering and raising the body using a bench or chair.",
+  "difficulty": "Intermediate",
+  "musclesTargeted": [
+    "Triceps",
+    "Pectorals",
+    "Deltoids"
+  ],
+  "videoUrl": "https://example.com/videos/tricepdip.mp4",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2025-08-29T20:47:30.458Z"
+  },
+  "updatedAt": {
+    "$date": "2025-08-29T20:47:30.458Z"
+  }
+},
+{
+  "_id": {
+    "$oid": "68b211e268340bab813bd0fb"
+  },
+  "name": "Mountain Climber",
+  "description": "A dynamic, full-body exercise that mimics the motion of climbing, building core strength and endurance.",
+  "difficulty": "Intermediate",
+  "musclesTargeted": [
+    "Core",
+    "Deltoids",
+    "Glutes",
+    "Cardio"
+  ],
+  "videoUrl": "https://example.com/videos/mountainclimber.mp4",
+  "__v": 0,
+  "createdAt": {
+    "$date": "2025-08-29T20:47:30.459Z"
+  },
+  "updatedAt": {
+    "$date": "2025-08-29T20:47:30.459Z"
+  }
+}]

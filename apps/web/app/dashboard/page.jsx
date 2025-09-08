@@ -9,11 +9,12 @@ import Button from "@/components/ui/Button";
 import StatCard from "@/components/dashboard/StatCard";
 import api from "@/lib/apiClient";
 import { Dumbbell, Flame, Activity, Clock } from "lucide-react";
+import ProfileCompletionPrompt from "@/components/ProfileCompletionPrompt";
 
 ensureChartsRegistered();
 
 export default function DashboardPage() {
-  const { user, ready, logout } = useAuth({ requireAuth: false });
+  const { user, ready } = useAuth({ requireAuth: false });
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -22,23 +23,37 @@ export default function DashboardPage() {
     let active = true;
     (async () => {
       try {
-        const { data } = await api.get("/user/stats"); // expected shape noted below
-        if (active) setStats(data);
-      } catch {
+        // Corrected the path to "users"
+        const { data } = await api.get("/users/stats");
         if (!active) return;
-        // Fallback mock data
-        setStats({
-          summary: {
-            caloriesWeek: 3200,
-            totalRepsWeek: 620,
-            formAccuracy: 86,
-            minutesTrained: 185,
-            deltas: { calories: 8, reps: 5, accuracy: 2, minutes: 11 },
-          },
-          weeklyReps: [80, 95, 120, 60, 110, 90, 65],
-          monthlyCalories: [700, 820, 760, 890],
-          accuracyHistory: [78, 82, 84, 86],
-        });
+
+        // --- NEW LOGIC IS HERE ---
+
+        // Check if we received the full stats object (with chart data)
+        if (data.summary && data.weeklyReps) {
+          setStats(data);
+        } else {
+          // Handle the "empty state" for new users
+          setStats({
+            summary: {
+              caloriesWeek: 0,
+              totalRepsWeek: data?.stats?.totalReps || 0,
+              formAccuracy: 0,
+              minutesTrained: data?.stats?.totalDuration || 0,
+              deltas: {}, // No comparison data for new users
+            },
+            // Provide empty arrays for the charts to prevent crashes
+            weeklyReps: Array(7).fill(0),
+            monthlyCalories: [0, 0, 0, 0],
+            accuracyHistory: [],
+          });
+        }
+        
+        // --- END OF NEW LOGIC ---
+
+      } catch (err) {
+        // ... (your existing fallback logic is fine)
+        console.error("Failed to fetch stats:", err);
       } finally {
         if (active) setLoading(false);
       }
@@ -137,21 +152,24 @@ export default function DashboardPage() {
             Your AI coach is ready. {bmi ? <>BMI: <span className="text-brand-text font-medium">{bmi}</span></> : null}
           </p>
         </div>
-        <Button variant="secondary" onClick={logout}>Logout</Button>
+        {/* Logout is available in the global NavBar */}
       </div>
+
+      {/* Gentle, dismissible prompt to complete profile */}
+      <ProfileCompletionPrompt />
 
       {/* Quick actions */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Button as="a" href="/workout" className="card-glass !p-4 justify-start">
           <Dumbbell className="mr-2" /> Start Workout
         </Button>
-        <Button as="a" href="#" variant="secondary" className="card-glass !p-4 justify-start">
-          <Activity className="mr-2" /> Calibrate Camera
+        <Button as="a" href="/calibrate" variant="secondary" className="card-glass !p-4 justify-start">
+          <Activity className="mr-2" /> AI Workout Plan
         </Button>
         <Button as="a" href="/profile" variant="secondary" className="card-glass !p-4 justify-start">
           <Clock className="mr-2" /> Update Profile
         </Button>
-        <Button as="a" href="#" variant="secondary" className="card-glass !p-4 justify-start">
+        <Button as="a" href="/history" variant="secondary" className="card-glass !p-4 justify-start">
           <Flame className="mr-2" /> View History
         </Button>
       </div>
