@@ -133,6 +133,21 @@ export default function AIPlanPage() {
 
   return (
     <div className="space-y-8">
+      {/* Quick actions for workflow */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold">AI Workout Plan</h1>
+          <p className="text-sm text-brand-muted">Generate and review your weekly plan.</p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button as="a" href="/workout" className="card-glass !py-2">
+            <Dumbbell className="mr-2" /> Start Workout
+          </Button>
+          <Button as="a" href="/diet" variant="secondary" className="card-glass !py-2">
+            <ChefHat className="mr-2" /> Daily Diet Plan
+          </Button>
+        </div>
+      </div>
       <div className="grid lg:grid-cols-3 gap-6">
         <Card title="AI Workout & Diet Plan" subtitle="Bring your own key (Gemini)">
           <div className="text-sm text-brand-muted space-y-3">
@@ -268,4 +283,3 @@ export default function AIPlanPage() {
     </div>
   );
 }
-

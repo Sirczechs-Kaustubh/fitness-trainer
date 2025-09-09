@@ -15,6 +15,14 @@ const fade = (d = 0) => ({
   animate: { opacity: 1, y: 0, transition: { duration: 0.45, delay: d } },
 });
 
+// Local date helpers
+function toISODate(d) {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${dd}`;
+}
+
 const EXERCISES = [
   "Squat",
   "Lunge",
@@ -31,6 +39,7 @@ const SESSION_KEY = "workout_session_v1";
 
 export default function WorkoutPage() {
   const { user, ready } = useAuth({ requireAuth: false });
+  const todayIso = useMemo(() => toISODate(new Date()), []);
   const [running, setRunning] = useState(false);
   const runningRef = useRef(false);
   const [muted, setMuted] = useState(true);
@@ -254,7 +263,8 @@ export default function WorkoutPage() {
 
   if (!ready) return null;
 
-  async function startSession() {
+  async function startSession(opts = {}) {
+    const ensureCreate = opts.ensureCreate !== false; // default true
     setError("");
     try {
       // If voice preference not set, default to enabled once the user interacts
@@ -262,8 +272,8 @@ export default function WorkoutPage() {
         const stored = localStorage.getItem('voice_cues_enabled');
         if (stored === null) setMuted(false);
       } catch {}
-      // 1) Ensure we have an active workoutId; skip creating if already set (plan/day flow)
-      if (!workoutId) {
+      // 1) Ensure we have an active workoutId; optionally skip auto-create (plan/day flow)
+      if (ensureCreate && !workoutId) {
         const { data } = await api.post("/workouts/start", {
           plannedExercises: [exercise],
         });
@@ -520,7 +530,7 @@ export default function WorkoutPage() {
       persistSession({
         status: 'in-progress', workoutId: newWorkoutId, selectedDay, dayItems, currentIndex: idx, repsBaseline: 0, startedAt: startedAtRef.current
       });
-      await startSession();
+      await startSession({ ensureCreate: false });
     } catch (e) {
       console.error(e);
       alert(e?.message || "Could not start workout");
@@ -535,6 +545,21 @@ export default function WorkoutPage() {
       // Build exercises payload from sequence if available
       let payloadExercises = [];
       if (dayItems && dayItems.length) {
+        // Merge current live progress into the active exercise before serializing
+        try {
+          const cur = dayItems[currentIndex];
+          if (cur && !cur.manual) {
+            const liveReps = Math.max(0, (reps || 0) - (repsBaseline || 0));
+            if (liveReps > 0) {
+              const updated = [...dayItems];
+              const item = { ...updated[currentIndex] };
+              item.totalReps = (item.totalReps || 0) + liveReps;
+              item.formScores = Array.isArray(item.formScores) ? [...item.formScores, score || 0] : [score || 0];
+              updated[currentIndex] = item;
+              setDayItems(updated);
+            }
+          }
+        } catch {}
         payloadExercises = dayItems.map((it) => ({
           name: it.name,
           reps: it.totalReps || 0,
@@ -1141,18 +1166,18 @@ export default function WorkoutPage() {
                 dayItems?.length ? (
                   <>
                     {workoutId ? (
-                      <Button onClick={startSession} className="flex-1"><Play className="mr-2 h-4 w-4"/> Resume</Button>
+                      <Button onClick={() => startSession({ ensureCreate: false })} className="flex-1"><Play className="mr-2 h-4 w-4"/> Resume</Button>
                     ) : (
                       <Button onClick={beginWorkoutForDay} className="flex-1"><Play className="mr-2 h-4 w-4"/> Start Workout</Button>
-                    )}
-                  </>
-                ) : (
-                  <Button onClick={startSession} className="flex-1"><Play className="mr-2 h-4 w-4"/> Start (Single)</Button>
-                )
+                  )}
+                </>
               ) : (
-                <>
-                  {dayItems?.length ? (
-                    <DayAdvanceControls
+                  <Button onClick={() => startSession()} className="flex-1"><Play className="mr-2 h-4 w-4"/> Start (Single)</Button>
+              )
+            ) : (
+              <>
+                {dayItems?.length ? (
+                  <DayAdvanceControls
                       exercise={exercise}
                       reps={reps}
                       score={score}
@@ -1277,6 +1302,30 @@ function DayAdvanceControls({ exercise, reps, score, dayItems, currentIndex, rep
   const setsDone = current.completedSets || 0;
   const setsTotal = current.sets || 1;
   const allSetsDone = setsDone >= setsTotal;
+
+  // Auto-complete a set when target reps reached (for non-manual exercises)
+  const autoRef = useRef({ completedAt: 0 });
+  useEffect(() => {
+    if (manualMode) return;
+    if (!canComplete || allSetsDone) return;
+    const now = Date.now();
+    // Debounce to avoid multiple triggers within 1s
+    if (now - (autoRef.current.completedAt || 0) < 1000) return;
+    const t = setTimeout(() => {
+      autoRef.current.completedAt = Date.now();
+      try { handleCompleteSet(); } catch {}
+    }, 600);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canComplete, manualMode]);
+
+  // Auto-continue when all sets are done
+  useEffect(() => {
+    if (!allSetsDone) return;
+    const t = setTimeout(() => { try { handleContinue(); } catch {} }, 700);
+    return () => clearTimeout(t);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [allSetsDone]);
 
   return (
     <div className="flex gap-3 flex-1">

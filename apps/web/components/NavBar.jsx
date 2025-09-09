@@ -33,6 +33,12 @@ export default function NavBar() {
       <Link href="/dashboard" className="text-sm text-brand-muted hover:text-brand-text">
         Dashboard
       </Link>
+      <Link href="/ai-workout-plan" className="text-sm text-brand-muted hover:text-brand-text">
+        AI Plan
+      </Link>
+      <Link href="/diet" className="text-sm text-brand-muted hover:text-brand-text">
+        Diet
+      </Link>
       <Link href="/profile" className="text-sm text-brand-muted hover:text-brand-text">
         Profile
       </Link>
