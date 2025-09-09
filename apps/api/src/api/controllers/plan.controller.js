@@ -1,11 +1,15 @@
 const https = require('https');
 const Plan = require('../../models/Plan.model');
+const Exercise = require('../../models/Exercise.model');
 
 function buildPrompt(user, extra = {}) {
   const goals = (user?.fitnessGoals || []).join(', ');
   const age = user?.age ? `${user.age}` : 'unknown';
   const height = user?.height ? `${user.height} cm` : 'unknown';
   const weight = user?.weight ? `${user.weight} kg` : 'unknown';
+  const allowedExercises = Array.isArray(extra.allowedExercises) && extra.allowedExercises.length
+    ? extra.allowedExercises
+    : [];
   const header = `Create a 7-day workout and diet plan personalized to the following user profile. Return STRICT JSON only, matching the schema.
 
 User Profile:
@@ -17,10 +21,14 @@ User Profile:
 
 Requirements:
 - Provide weeklyPlan: array of 7 days with day, focus, items (array of exercises), and optional sets/reps or duration per item.
+- IMPORTANT: For weeklyPlan.items, you MUST choose exercise names ONLY from the Allowed Exercises list below, EXACTLY as written (case and punctuation must match). Do not invent, pluralize, or use synonyms.
 - Provide diet: macros (per kg bodyweight: protein, carbs, fats), guidance note, and sampleMeals (breakfast, lunch, snack, dinner strings).
 - Provide calories: maintainLow, maintainHigh (daily kcal), and delta (e.g., -400 for fat loss or +250 for muscle).
 - Keep exercises bodyweight or light equipment by default.
 - Keep language concise.
+
+Allowed Exercises:
+${allowedExercises.length ? allowedExercises.map((n) => `- ${n}`).join('\n') : '- (none provided)'}
 
 JSON Schema:
 {
@@ -89,9 +97,64 @@ const generatePlan = async (req, res) => {
     if (!apiKey) return res.status(400).json({ message: 'Missing apiKey (BYOK)' });
     if (provider !== 'google') return res.status(400).json({ message: 'Only provider "google" (Gemini) is supported for now' });
 
-    const prompt = buildPrompt(user);
+    // Fetch allowed exercise names from DB (canonical list)
+    const allExercises = await Exercise.find({}, 'name').sort({ name: 1 }).lean();
+    const allowedNames = allExercises.map((e) => e.name);
+
+    const prompt = buildPrompt(user, { allowedExercises: allowedNames });
     const { text } = await callGemini({ apiKey, model, prompt });
-    const planObject = tryExtractJson(text);
+    let planObject = tryExtractJson(text);
+
+    // Post-process planObject to strictly use allowed exercise names
+    if (planObject && Array.isArray(planObject.weeklyPlan)) {
+      const normMap = new Map();
+      const toKey = (s) => String(s || '').trim().toLowerCase()
+        .replace(/\([^)]*\)/g, '') // remove parenthetical
+        .replace(/[^a-z0-9]+/g, ' ') // collapse punctuation
+        .replace(/\s+/g, ' ') // trim spaces
+        .trim();
+      for (const name of allowedNames) normMap.set(toKey(name), name);
+
+      function bestMatch(raw) {
+        const k = toKey(raw);
+        if (normMap.has(k)) return normMap.get(k);
+        // Try naive singularization for common plurals
+        const singular = k.endsWith('s') ? k.slice(0, -1) : k;
+        if (normMap.has(singular)) return normMap.get(singular);
+        // Common manual mappings (plural -> singular)
+        const manual = new Map([
+          ['push ups', 'Push-up'],
+          ['pushup', 'Push-up'],
+          ['pushups', 'Push-up'],
+          ['squat', 'Squat'],
+          ['squats', 'Squat'],
+          ['lunge', 'Lunge'],
+          ['lunges', 'Lunge'],
+          ['bicep curl', 'Bicep Curl'],
+          ['bicep curls', 'Bicep Curl'],
+          ['tricep dip', 'Tricep Dip'],
+          ['tricep dips', 'Tricep Dip'],
+          ['mountain climber', 'Mountain Climber'],
+          ['mountain climbers', 'Mountain Climber'],
+          ['jumping jack', 'Jumping Jack'],
+          ['jumping jacks', 'Jumping Jack'],
+          ['shoulder press', 'Shoulder Press'],
+        ]);
+        if (manual.has(k)) return manual.get(k);
+        if (manual.has(singular)) return manual.get(singular);
+        return null;
+      }
+
+      planObject.weeklyPlan = planObject.weeklyPlan.map((day) => {
+        const items = Array.isArray(day.items) ? day.items : [];
+        const mapped = items
+          .map((it) => bestMatch(it))
+          .filter((x) => !!x);
+        // If nothing matched, provide a small default from allowed list to avoid empty days
+        const safeItems = mapped.length ? mapped : allowedNames.slice(0, Math.min(4, allowedNames.length));
+        return { ...day, items: Array.from(new Set(safeItems)) };
+      });
+    }
 
     let saved = null;
     if (save) {
@@ -116,8 +179,53 @@ const generatePlan = async (req, res) => {
 const savePlan = async (req, res) => {
   try {
     const user = req.user;
-    const { planObject, planText, provider = 'google', model = 'gemini-1.5-flash' } = req.body || {};
+    let { planObject, planText, provider = 'google', model = 'gemini-1.5-flash' } = req.body || {};
     if (!planObject && !planText) return res.status(400).json({ message: 'Missing planObject or planText' });
+    // If planObject present, sanitize items against DB exercise names
+    if (planObject && Array.isArray(planObject.weeklyPlan)) {
+      const allExercises = await Exercise.find({}, 'name').sort({ name: 1 }).lean();
+      const allowedNames = allExercises.map((e) => e.name);
+      const toKey = (s) => String(s || '').trim().toLowerCase()
+        .replace(/\([^)]*\)/g, '')
+        .replace(/[^a-z0-9]+/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      const normMap = new Map();
+      for (const name of allowedNames) normMap.set(toKey(name), name);
+      const manual = new Map([
+        ['push ups', 'Push-up'],
+        ['pushup', 'Push-up'],
+        ['pushups', 'Push-up'],
+        ['squat', 'Squat'],
+        ['squats', 'Squat'],
+        ['lunge', 'Lunge'],
+        ['lunges', 'Lunge'],
+        ['bicep curl', 'Bicep Curl'],
+        ['bicep curls', 'Bicep Curl'],
+        ['tricep dip', 'Tricep Dip'],
+        ['tricep dips', 'Tricep Dip'],
+        ['mountain climber', 'Mountain Climber'],
+        ['mountain climbers', 'Mountain Climber'],
+        ['jumping jack', 'Jumping Jack'],
+        ['jumping jacks', 'Jumping Jack'],
+        ['shoulder press', 'Shoulder Press'],
+      ]);
+      const best = (raw) => {
+        const k = toKey(raw);
+        if (normMap.has(k)) return normMap.get(k);
+        const singular = k.endsWith('s') ? k.slice(0, -1) : k;
+        if (normMap.has(singular)) return normMap.get(singular);
+        if (manual.has(k)) return manual.get(k);
+        if (manual.has(singular)) return manual.get(singular);
+        return null;
+      };
+      planObject.weeklyPlan = planObject.weeklyPlan.map((day) => {
+        const items = Array.isArray(day.items) ? day.items : [];
+        const mapped = items.map(best).filter(Boolean);
+        const safeItems = mapped.length ? mapped : allowedNames.slice(0, Math.min(4, allowedNames.length));
+        return { ...day, items: Array.from(new Set(safeItems)) };
+      });
+    }
     const doc = new Plan({ user: user._id, provider, model, promptVersion: 'v1', planObject, planText });
     await doc.save();
     return res.status(201).json({ message: 'Plan saved', id: doc._id });
@@ -141,4 +249,3 @@ const getLatestPlan = async (req, res) => {
 };
 
 module.exports = { generatePlan, savePlan, getLatestPlan };
-
