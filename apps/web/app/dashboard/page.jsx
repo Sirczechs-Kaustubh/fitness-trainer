@@ -163,7 +163,7 @@ export default function DashboardPage() {
         <Button as="a" href="/workout" className="card-glass !p-4 justify-start">
           <Dumbbell className="mr-2" /> Start Workout
         </Button>
-        <Button as="a" href="/calibrate" variant="secondary" className="card-glass !p-4 justify-start">
+        <Button as="a" href="/ai-workout-plan" variant="secondary" className="card-glass !p-4 justify-start">
           <Activity className="mr-2" /> AI Workout Plan
         </Button>
         <Button as="a" href="/profile" variant="secondary" className="card-glass !p-4 justify-start">

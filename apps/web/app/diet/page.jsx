@@ -167,7 +167,8 @@ function computeTotals(planDiet, user) {
 }
 
 function buildMeals(planDiet, totals, log, pref) {
-  const samples = planDiet?.sampleMeals || {};
+  const samplesRaw = planDiet?.sampleMeals || {};
+  const samples = adaptSamplesForPreference(samplesRaw, pref);
   const split = DEFAULT_SPLIT;
   const meals = MEAL_KEYS.map((key) => {
     const pct = split[key] || 0;
@@ -189,3 +190,82 @@ function buildMeals(planDiet, totals, log, pref) {
   return meals;
 }
 
+// Transform sample meal text according to dietary preference without requiring plan regeneration
+function adaptSamplesForPreference(samples, pref) {
+  if (!samples || typeof samples !== 'object') return samples || {};
+  if (pref !== 'veg' && pref !== 'vegan') return samples; // default or nonveg → no change
+
+  const replaceMany = (text, pairs) => {
+    let out = String(text || '');
+    for (const [pattern, repl] of pairs) {
+      out = out.replace(pattern, repl);
+    }
+    // Normalize extra spaces
+    return out.replace(/\s{2,}/g, ' ').trim();
+  };
+
+  // Common meat/seafood terms
+  const meats = [
+    /\bchicken\b/gi,
+    /\bturkey\b/gi,
+    /\bbeef\b/gi,
+    /\bpork\b/gi,
+    /\bham\b/gi,
+    /\bsteak\b/gi,
+    /\bshrimp\b/gi,
+    /\bprawn\b/gi,
+    /\bfish\b/gi,
+    /\bsalmon\b/gi,
+    /\btuna\b/gi,
+  ];
+
+  // Dairy/eggs terms (to exclude for vegan only)
+  const dairyEgg = [
+    /\begg(s)?\b/gi,
+    /\byogurt\b/gi,
+    /\bgreek yogurt\b/gi,
+    /\bcheese\b/gi,
+    /\bmilk\b/gi,
+    /\bwhey\b/gi,
+    /\bcottage cheese\b/gi,
+    /\bpaneer\b/gi,
+    /\bbutter\b/gi,
+    /\bghee\b/gi,
+  ];
+
+  const plantProteinGeneric = 'lentils/beans';
+  const vegProtein = 'paneer/tofu';
+  const veganProtein = 'tofu/tempeh';
+  const veganDairy = new Map([
+    [/\bgreek yogurt\b/gi, 'soy yogurt'],
+    [/\byogurt\b/gi, 'soy yogurt'],
+    [/\bmilk\b/gi, 'almond milk'],
+    [/\bcheese\b/gi, 'plant-based cheese'],
+    [/\bcottage cheese\b/gi, 'tofu'],
+    [/\bbutter\b/gi, 'olive oil'],
+    [/\bghee\b/gi, 'olive oil'],
+    [/\bwhey\b/gi, 'plant protein'],
+  ]);
+
+  function adaptOne(s) {
+    if (!s) return s;
+    let t = String(s);
+    // Replace meat/seafood
+    t = replaceMany(t, meats.map((rx) => [rx, pref === 'vegan' ? veganProtein : vegProtein]));
+    if (pref === 'vegan') {
+      // Replace dairy/egg terms for vegan
+      for (const [rx, repl] of veganDairy) t = t.replace(rx, repl);
+      t = t.replace(/\begg(s)?\b/gi, veganProtein);
+    }
+    // Clean common patterns like "with with" after replacements
+    t = t.replace(/\bwith with\b/gi, 'with');
+    return t;
+  }
+
+  return {
+    breakfast: adaptOne(samples.breakfast),
+    lunch: adaptOne(samples.lunch),
+    dinner: adaptOne(samples.dinner),
+    snack: adaptOne(samples.snack),
+  };
+}

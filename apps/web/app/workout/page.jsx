@@ -970,7 +970,7 @@ export default function WorkoutPage() {
                 >
                   {muted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
                 </Button>
-                <Button as="a" href="/calibrate" variant="secondary" size="sm" title="Open AI plan">
+                <Button as="a" href="/ai-workout-plan" variant="secondary" size="sm" title="Open AI plan">
                   <Sparkles className="h-4 w-4" />
                 </Button>
                 <Button variant="secondary" size="sm" title={fullscreen === 'camera' ? 'Exit Fullscreen' : 'Fullscreen'} onClick={() => setFullscreen(fs => fs === 'camera' ? null : 'camera')}>
