@@ -23,6 +23,21 @@ function toISODate(d) {
   return `${y}-${m}-${dd}`;
 }
 
+// Speech synthesis helpers (no beeps)
+function warmupTTS() {
+  try {
+    if (typeof window === 'undefined') return;
+    const synth = window.speechSynthesis;
+    if (!synth || typeof SpeechSynthesisUtterance === 'undefined') return;
+    // Touch voices list; some browsers lazy-load voices
+    const _ = synth.getVoices();
+    // Optional: enqueue a silent utterance to unlock on iOS without sound
+    const u = new SpeechSynthesisUtterance('');
+    u.volume = 0;
+    try { synth.speak(u); } catch {}
+  } catch {}
+}
+
 const EXERCISES = [
   "Squat",
   "Lunge",
@@ -66,6 +81,7 @@ export default function WorkoutPage() {
   const lastCueTextRef = useRef("");
   const prevRepRef = useRef(0);
   const speakingRef = useRef(false);
+  const voiceRef = useRef(null);
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
@@ -120,6 +136,32 @@ export default function WorkoutPage() {
   useEffect(() => {
     try { localStorage.setItem('voice_cues_enabled', (!muted).toString()); } catch {}
   }, [muted]);
+
+  // Load a calm voice for TTS cues
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const synth = window.speechSynthesis;
+    if (!synth) return;
+    const pick = () => {
+      try {
+        const voices = synth.getVoices() || [];
+        // Prefer natural, neutral voices when available
+        const prefer = [
+          'Google US English', 'Samantha', 'Victoria', 'Daniel', 'Serena', 'Alex', 'Moira', 'Karen'
+        ];
+        const byName = (name) => voices.find(v => (v?.name || '').includes(name));
+        for (const name of prefer) {
+          const v = byName(name);
+          if (v) { voiceRef.current = v; return; }
+        }
+        // Fallback to first English voice
+        voiceRef.current = voices.find(v => (v?.lang || '').startsWith('en')) || null;
+      } catch {}
+    };
+    pick();
+    synth.addEventListener('voiceschanged', pick);
+    return () => synth.removeEventListener('voiceschanged', pick);
+  }, []);
 
   // Load and persist feedback text size
   useEffect(() => {
@@ -394,10 +436,17 @@ export default function WorkoutPage() {
         if (debug) console.debug("socket emit session:start", { exercise: norm.canonical, userId: user?._id });
         socket.emit("session:start", { exercise: norm.canonical, userId: user?._id });
       }
+      // Reset live counters for the new exercise session on client
+      setRepsBaseline(0);
+      setReps(0);
+      setScore(0);
 
       // 5) Load MediaPipe Pose landmarker if not already
       await ensurePoseLandmarker();
       if (debug) console.info("pose landmarker ready");
+
+      // 5b) Warm up TTS on user gesture (no beeps)
+      warmupTTS();
 
       // 6) Start draw loop (prefer requestVideoFrameCallback when available)
       if (!startedAtRef.current) startedAtRef.current = Date.now();
@@ -418,23 +467,34 @@ export default function WorkoutPage() {
     if (muted) return;
     if (!text || typeof window === 'undefined') return;
     const synth = window.speechSynthesis;
-    if (!synth || typeof SpeechSynthesisUtterance === 'undefined') return;
+    if (!synth || typeof SpeechSynthesisUtterance === 'undefined') {
+      // No TTS available; skip audio (no beeps)
+      return;
+    }
 
     const now = Date.now();
-    const minGap = opts.priority ? 800 : 2500; // ms between cues
+    const minGap = opts.priority ? 900 : 1500; // slightly less chatty
     if (!opts.priority && now - lastCueAtRef.current < minGap) return;
-    if (lastCueTextRef.current === text && now - lastCueAtRef.current < 10000) return; // de-dupe same cue longer
+    if (lastCueTextRef.current === text && now - lastCueAtRef.current < 4000) return; // lighter de-dupe
 
-    try { synth.cancel(); } catch {}
+    // Only interrupt current speech for priority cues
+    if (speakingRef.current && !opts.priority) return;
+    if (opts.priority) { try { synth.cancel(); } catch {} }
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'en-US';
-    u.rate = 1.0;
+    u.voice = voiceRef.current || null;
+    u.rate = 0.95;
     u.pitch = 1.0;
+    u.volume = 0.85;
     speakingRef.current = true;
     u.onend = () => { speakingRef.current = false; };
     lastCueTextRef.current = text;
     lastCueAtRef.current = now;
-    try { synth.speak(u); } catch {}
+    try {
+      synth.speak(u);
+    } catch (e) {
+      // If TTS fails, do nothing (no beeps)
+    }
   }
 
   function maybeSpeakCue(payload) {
@@ -452,10 +512,10 @@ export default function WorkoutPage() {
     // Positive cue on rep increment (reduce frequency)
     if (rc > (prevRepRef.current || 0)) {
       prevRepRef.current = rc;
-      if (rc % 3 === 0) {
-        const positives = ["Great rep!", "Nice!", "Good job!", "Keep it up!"];
-        const say = positives[(rc/3) % positives.length];
-        speakIfAllowed(say);
+      // Announce every 5 reps only to reduce chatter
+      if (rc % 5 === 0) {
+        speakIfAllowed(`${rc} reps`, { category: 'pos' });
+        return;
       }
       return;
     }
@@ -463,8 +523,8 @@ export default function WorkoutPage() {
 
     if (!fb) {
       // fallback by score thresholds
-      if (sc >= 85) speakIfAllowed("Perfect posture");
-      else if (sc <= 55) speakIfAllowed("Engage your core and adjust form");
+      if (sc >= 90) speakIfAllowed("Perfect posture", { category: 'pos' });
+      else if (sc <= 60) { speakIfAllowed("Adjust your form", { category: 'error' }); }
       return;
     }
     // Normalize and gate repeated error cues
@@ -495,7 +555,8 @@ export default function WorkoutPage() {
     const lastAt = maybeSpeakCue._lastByKey.get(key) || 0;
     if (Date.now() - lastAt < 10000) return;
     maybeSpeakCue._lastByKey.set(key, Date.now());
-    speakIfAllowed(cue);
+    const prio = /keep|tuck|hinge|lower|core|straight/.test(key);
+    speakIfAllowed(cue, { priority: prio, category: prio ? 'error' : 'info' });
   }
 
   function buildCardioFeedback(name) {
@@ -1275,6 +1336,7 @@ function DayAdvanceControls({ exercise, reps, score, dayItems, currentIndex, rep
     setDayItems(updated);
     setRepsBaseline(reps); // next set counts from new baseline
     persistSession({ dayItems: updated, repsBaseline: reps });
+    try { speakIfAllowed(`Set ${item.completedSets}/${item.sets || 1} complete`, { priority: true, category: 'info' }); } catch {}
     try { if (typeof onProgressChange === 'function') onProgressChange(updated); } catch {}
   };
 
@@ -1291,6 +1353,10 @@ function DayAdvanceControls({ exercise, reps, score, dayItems, currentIndex, rep
         const norm = normalizeExerciseName(nextName);
         if (!(norm.manual)) getSocket().emit('session:start', { exercise: norm.canonical, userId });
       } catch {}
+      try { speakIfAllowed(`Next: ${nextName}`); } catch {}
+      // Reset live counters when moving to next exercise
+      setReps(0);
+      setScore(0);
       persistSession({ currentIndex: nextIndex, exercise: nextName, repsBaseline: 0 });
       try { if (typeof onProgressChange === 'function') onProgressChange(dayItems); } catch {}
     } else {
